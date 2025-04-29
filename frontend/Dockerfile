@@ -7,7 +7,7 @@ WORKDIR /app
 # Copy package files
 COPY package.json package-lock.json ./
 
-# Install dependencies
+# Install dependencies (including devDependencies for build)
 RUN npm install
 
 # Copy all source code and configuration files
@@ -27,16 +27,13 @@ FROM nginx:alpine
 # Set working directory
 WORKDIR /app
 
-# Copy the entire project from the build stage (to preserve structure)
-COPY --from=build /app /app
-
 # Copy built assets to Nginx's serve directory
 COPY --from=build /app/dist /usr/share/nginx/html
 
 # Copy Nginx configuration
-COPY --from=build /app/nginx.conf /etc/nginx/conf.d/default.conf
+COPY nginx.conf /etc/nginx/conf.d/default.conf
 
-# Expose port 80
+# Expose port 80 (Nginx default)
 EXPOSE 80
 
 # Start Nginx
