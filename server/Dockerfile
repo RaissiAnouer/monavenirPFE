@@ -13,7 +13,18 @@ RUN npm ci --only=production
 # Copy all source code and configuration files
 COPY . .
 
-# Expose port 5000 (matches PORT in .env)
+# Create a non-root user and group
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
+
+# Ensure /home is writable for persistent storage (optional, as Azure manages /home)
+RUN mkdir -p /home/uploads /home/public/images && \
+    chown -R appuser:appgroup /home/uploads /home/public/images && \
+    chmod -R 755 /home/uploads /home/public/images
+
+# Switch to non-root user
+USER appuser
+
+# Expose port 5000 (matches PORT in .env and Terraform)
 EXPOSE 5000
 
 # Start the application
