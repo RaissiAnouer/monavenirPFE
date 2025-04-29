@@ -120,7 +120,7 @@ resource "azurerm_linux_web_app" "frontend_app" {
   }
 
   app_settings = {
-    "WEBSITES_PORT" = "3000"  # Port for frontend application
+    "WEBSITES_PORT" = "80"  # Port for frontend application
   }
 
   site_config {
