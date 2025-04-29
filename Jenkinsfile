@@ -35,7 +35,7 @@ pipeline {
                 stage('Frontend Tests') {
                     steps {
                         dir('frontend') {
-                            echo "Installing frontend dependencies..."
+                            echo "Install frontend dependencies..."
                             sh "npm install"
                             echo "Running frontend tests..."
                             sh "npm test -- --run"
