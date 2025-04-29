@@ -116,7 +116,7 @@ const createUploadDirectories = () => {
   const uploadPaths = [
     path.join(__dirname, 'uploads'),
     path.join(__dirname, 'uploads/images'),
-    path.join(__dirname, 'uploads/documents'),
+    path.join(__dirname, 'Uploads/documents'),
     path.join(__dirname, 'uploads/videos'),
     path.join(__dirname, 'public/images'),
   ];
@@ -124,12 +124,11 @@ const createUploadDirectories = () => {
   uploadPaths.forEach(dir => {
     try {
       if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true, mode: 0o755 });
+        fs.mkdirSync(dir, { recursive: true });
         console.log(`Created directory: ${dir}`);
-      } else {
-        fs.chmodSync(dir, 0o755);
       }
 
+      // Test writability
       const testFile = path.join(dir, '.test-write-permission');
       fs.writeFileSync(testFile, 'test');
       fs.unlinkSync(testFile);
