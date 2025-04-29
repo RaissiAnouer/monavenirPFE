@@ -32,8 +32,6 @@ app.use(helmet());
 app.use(xss());
 app.use(mongoSanitize());
 
-
-
 // CORS configuration
 const corsOrigin = process.env.FRONTEND_URL || 'https://frontend-pfe.azurewebsites.net';
 console.log('CORS Origin set to:', corsOrigin); // For debugging
@@ -67,9 +65,6 @@ app.options('*', (req, res) => {
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.sendStatus(200);
 });
-
-
-
 
 // Rate limiter configuration
 const limiter = rateLimit({
@@ -114,11 +109,11 @@ app.use((req, res, next) => {
 // Create upload directories if they don't exist
 const createUploadDirectories = () => {
   const uploadPaths = [
-    path.join(__dirname, 'uploads'),
-    path.join(__dirname, 'uploads/images'),
-    path.join(__dirname, 'Uploads/documents'),
-    path.join(__dirname, 'uploads/videos'),
-    path.join(__dirname, 'public/images'),
+    '/home/uploads',
+    '/home/uploads/images',
+    '/home/uploads/documents',
+    '/home/uploads/videos',
+    '/home/public/images'
   ];
 
   uploadPaths.forEach(dir => {
@@ -142,7 +137,7 @@ const createUploadDirectories = () => {
 createUploadDirectories();
 
 // Serve static files from uploads directory
-app.use('/uploads', express.static('uploads', {
+app.use('/uploads', express.static('/home/uploads', {
   setHeaders: (res) => {
     res.set('Access-Control-Allow-Origin', corsOrigin);
     res.set('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
@@ -158,7 +153,7 @@ app.use('/images', (req, res, next) => {
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   res.setHeader('Cache-Control', 'public, max-age=86400');
   next();
-}, express.static(path.join(__dirname, 'public/images')));
+}, express.static('/home/public/images'));
 
 // Serve course banner images with authentication
 app.use('/uploads', auth, (req, res, next) => {
@@ -168,13 +163,13 @@ app.use('/uploads', auth, (req, res, next) => {
   res.setHeader('Cross-Origin-Resource-Policy', 'cross-origin');
   res.setHeader('Cache-Control', 'public, max-age=86400');
   next();
-}, express.static(path.join(__dirname, 'uploads')));
+}, express.static('/home/uploads'));
 
 // Video streaming route
 app.get('/api/stream/:filename', (req, res) => {
   const { token } = req.query;
   const filename = req.params.filename;
-  const filePath = path.join(__dirname, 'uploads', 'videos', filename);
+  const filePath = path.join('/home/uploads/videos', filename);
 
   console.log(`Streaming request for: ${filename}`);
   console.log(`Token: ${token ? token : 'missing'}`);
@@ -264,11 +259,7 @@ app.get('/check-file', auth, (req, res) => {
   }
 
   const normalizedPath = path.normalize(filePath).replace(/^(\.\.(\/|\\|$))+/, '');
-  if (normalizedPath !== filePath) {
-    return res.status(403).json({ message: 'Forbidden' });
-  }
-
-  const fullPath = path.join(__dirname, normalizedPath);
+  const fullPath = path.join('/home', normalizedPath);
   const exists = fs.existsSync(fullPath);
 
   res.json({
@@ -287,7 +278,7 @@ app.get('/api/debug/video/:filename', auth, (req, res) => {
     return res.status(400).json({ message: 'Invalid filename' });
   }
 
-  const videoPath = path.join(__dirname, 'uploads', 'videos', filename);
+  const videoPath = path.join('/home/uploads/videos', filename);
   const exists = fs.existsSync(videoPath);
   let stats = null;
   let readable = false;
@@ -374,7 +365,7 @@ app.get('/api/pdf/:filename', [auth, pdfLimiter], async (req, res) => {
     });
   }
 
-  const documentsDir = path.join(__dirname, 'uploads', 'documents');
+  const documentsDir = '/home/uploads/documents';
   const pdfPath = path.join(documentsDir, filename);
 
   if (!pdfPath.startsWith(documentsDir)) {
@@ -385,7 +376,7 @@ app.get('/api/pdf/:filename', [auth, pdfLimiter], async (req, res) => {
   console.log('Looking for PDF at path:', pdfPath);
 
   try {
-    await fs.promises.mkdir(documentsDir, { recursive: true, mode: 0o755 });
+    await fs.promises.mkdir(documentsDir, { recursive: true });
   } catch (dirErr) {
     console.error('Failed to ensure documents directory exists:', dirErr);
     return res.status(500).json({ 
@@ -506,8 +497,8 @@ app.get('/api/debug/file', auth, async (req, res) => {
 
   try {
     const normalizedPath = path.normalize(filePath).replace(/^(\.\.(\/|\\|$))+/, '');
-    const fullPath = path.join(__dirname, normalizedPath);
-    const uploadsDir = path.join(__dirname, 'uploads');
+    const fullPath = path.join('/home', normalizedPath);
+    const uploadsDir = '/home/uploads';
 
     if (!fullPath.startsWith(uploadsDir)) {
       console.log('Access denied - path outside uploads directory:', fullPath);
@@ -517,8 +508,8 @@ app.get('/api/debug/file', auth, async (req, res) => {
       });
     }
 
-    const documentsDir = path.join(__dirname, 'uploads', 'documents');
-    await fs.promises.mkdir(documentsDir, { recursive: true, mode: 0o755 })
+    const documentsDir = '/home/uploads/documents';
+    await fs.promises.mkdir(documentsDir, { recursive: true })
       .catch(err => console.error('Error creating documents directory:', err));
 
     const exists = await fs.promises.access(fullPath, fs.constants.F_OK)
