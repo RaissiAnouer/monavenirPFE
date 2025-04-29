@@ -55,7 +55,7 @@ const UniversityGuide: React.FC = () => {
   }, []);
 
   const getPdfUrl = (filename: string) => {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const baseUrl = import.meta.env.VITE_API_URL || 'https://backend-pfe.azurewebsites.net';
     return `${baseUrl}/api/pdf/${encodeURIComponent(filename)}`;
   };
 
@@ -80,7 +80,7 @@ const UniversityGuide: React.FC = () => {
     setLoading(prev => ({ ...prev, [pdf.id]: true }));
     setError(null);
     
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const baseUrl = import.meta.env.VITE_API_URL || 'https://backend-pfe.azurewebsites.net';
     
     try {
       // Try to download the file directly without checking first

@@ -9,7 +9,7 @@ export default defineConfig({
     host: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:5000',
+        target: 'https://backend-pfe.azurewebsites.net',
         changeOrigin: true,
         secure: false
       }

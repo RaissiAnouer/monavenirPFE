@@ -66,14 +66,14 @@ const VideoPlayer: React.FC<{ src: string; poster?: string }> = ({ src, poster }
         if (filename) {
           // Include the token in the URL as a query parameter
           const token = localStorage.getItem('token');
-          const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+          const baseUrl = import.meta.env.VITE_API_BASE_URL || 'https://backend-pfe.azurewebsites.net';
           // Add timestamp to prevent caching issues
           return `${baseUrl}/api/stream/${filename}?token=${token}&t=${Date.now()}`;
         }
       } else if (src.startsWith('/uploads')) {
         // Include the token in the URL as a query parameter
         const token = localStorage.getItem('token');
-        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'https://backend-pfe.azurewebsites.net';
         // Add timestamp to prevent caching issues
         return `${baseUrl}${src}?token=${token}&t=${Date.now()}`;
       }
@@ -287,7 +287,7 @@ const VideoPlayer: React.FC<{ src: string; poster?: string }> = ({ src, poster }
   const fixedPoster = useMemo(() => {
     try {
       if (poster && poster.startsWith('/uploads')) {
-        return `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}${poster}`;
+        return `${import.meta.env.VITE_API_BASE_URL || 'https://backend-pfe.azurewebsites.net'}${poster}`;
       }
       return poster;
     } catch (error) {
@@ -547,7 +547,7 @@ const CourseContent: React.FC = () => {
       setUploadProgress(0);
       
       const axiosInstance = axios.create({
-        baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000',
+        baseURL: import.meta.env.VITE_API_BASE_URL || 'https://backend-pfe.azurewebsites.net',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'multipart/form-data'
@@ -667,7 +667,7 @@ const CourseContent: React.FC = () => {
       
       // Create axios instance for the request
       const axiosInstance = axios.create({
-        baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000',
+        baseURL: import.meta.env.VITE_API_BASE_URL || 'https://backend-pfe.azurewebsites.net',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
