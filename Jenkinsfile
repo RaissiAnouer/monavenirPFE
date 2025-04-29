@@ -126,23 +126,23 @@ pipeline {
             }
         }*/
 
-        stage('Build Docker Images') {
-            steps {
-                echo "Building Docker images for backend and frontend..."
+       stage('Build Docker Images') {
+    steps {
+        echo "Building Docker images for backend and frontend..."
 
-                dir('server') {
-                    echo "Building backend Docker image..."
-                    sh "docker build -t ${IMAGE_NAME_BACKEND}:${IMAGE_TAG} ."
-                }
-
-                dir('frontend') {
-                    echo "Building frontend Docker image..."
-                    sh "docker build --build-arg VITE_API_BASE_URL=https://backend-pfe.azurewebsites.net -t ${DOCKER_REGISTRY}/${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} ."
-                }
-
-                echo "Docker images built successfully!"
-            }
+        dir('server') {
+            echo "Building backend Docker image..."
+            sh "docker build -t ${IMAGE_NAME_BACKEND}:${IMAGE_TAG} ."
         }
+
+        dir('frontend') {
+            echo "Building frontend Docker image..."
+            sh "docker build --build-arg VITE_API_BASE_URL=https://backend-pfe.azurewebsites.net -t ${IMAGE_NAME_FRONTEND}:${IMAGE_TAG} ."
+        }
+
+        echo "Docker images built successfully!"
+    }
+}
 
         stage('Push Docker Images to Nexus') {
             steps {
