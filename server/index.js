@@ -34,8 +34,9 @@ app.use(mongoSanitize());
 
 // CORS configuration
 const corsOrigin = process.env.FRONTEND_URL || 'https://frontend-pfe.azurewebsites.net';
+console.log('CORS Origin set to:', corsOrigin); // Add this for debugging
 app.use(cors({
-  origin: origin: process.env.FRONTEND_URL || 'https://frontend-pfe.azurewebsites.net',
+  origin: corsOrigin,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
   allowedHeaders: [
