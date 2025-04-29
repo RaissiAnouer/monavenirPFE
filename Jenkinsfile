@@ -49,7 +49,7 @@ pipeline {
                             echo "Frontend tests passed successfully!"
                         }
                         failure {
-                            echo "Frontend tests failed! Please check the test logs."
+                            echo "Frontend tests failed ! Please check the test logs."
                         }
                     }
                 }
