@@ -83,8 +83,8 @@ const authLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false
 });
-app.use('/api/auth/login', authLimiter);
-app.use('/api/auth/signup', authLimiter);
+/*app.use('/api/auth/login', authLimiter);
+app.use('/api/auth/signup', authLimiter);*/
 
 // Security headers for video streaming
 app.use((req, res, next) => {
