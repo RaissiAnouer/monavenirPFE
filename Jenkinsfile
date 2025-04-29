@@ -155,7 +155,7 @@ pipeline {
     withSonarQubeEnv() {
       sh "${scannerHome}/bin/sonar-scanner"
     }
-  
+          }}
 }
         stage('Push Docker Images to Nexus') {
             steps {
