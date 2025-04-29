@@ -32,9 +32,12 @@ app.use(helmet());
 app.use(xss());
 app.use(mongoSanitize());
 
+
+
 // CORS configuration
 const corsOrigin = process.env.FRONTEND_URL || 'https://frontend-pfe.azurewebsites.net';
-console.log('CORS Origin set to:', corsOrigin); // Add this for debugging
+console.log('CORS Origin set to:', corsOrigin); // For debugging
+
 app.use(cors({
   origin: corsOrigin,
   credentials: true,
@@ -56,14 +59,17 @@ app.use(cors({
   ]
 }));
 
-// Explicitly handle OPTIONS for /api/auth routes
-app.options('/api/auth/*', (req, res) => {
+// Explicitly handle OPTIONS requests globally (if needed)
+app.options('*', (req, res) => {
   res.setHeader('Access-Control-Allow-Origin', corsOrigin);
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,PUT,DELETE,OPTIONS,PATCH');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type,Authorization,X-CSRF-Token,X-Requested-With,Accept,Origin,Range');
   res.setHeader('Access-Control-Allow-Credentials', 'true');
   res.sendStatus(200);
 });
+
+
+
 
 // Rate limiter configuration
 const limiter = rateLimit({
