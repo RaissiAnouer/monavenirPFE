@@ -100,7 +100,7 @@ pipeline {
             }
         }
 
-        stage('SonarQube Analysis') {
+        /*stage('SonarQube Analysis') {
             steps {
                 echo "Running SonarQube analysis..."
                 dir('server') {
@@ -148,7 +148,15 @@ pipeline {
                 echo "Docker images built successfully!"
             }
         }
+*/
 
+          stage('SonarQube Analysis') {
+    def scannerHome = tool 'SonarScanner';
+    withSonarQubeEnv() {
+      sh "${scannerHome}/bin/sonar-scanner"
+    }
+  }
+}
         stage('Push Docker Images to Nexus') {
             steps {
                 echo "Pushing Docker images to Nexus repository..."
