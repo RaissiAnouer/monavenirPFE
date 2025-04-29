@@ -22,9 +22,11 @@ pipeline {
     }
 
     stages {
-          stage('SCM') {
-    checkout scm
-  }
+       stage('SCM') {
+    steps {
+        checkout scm
+        }
+    }
         
 
       
