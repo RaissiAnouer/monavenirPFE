@@ -1,7 +1,6 @@
 pipeline {
     agent any
 
-
     environment {
         DOCKER_REGISTRY = "nexusrepository-https.francecentral.cloudapp.azure.com:7777"
         NEXUS_CREDENTIALS_ID = "nexus-credentials"
@@ -22,14 +21,12 @@ pipeline {
     }
 
     stages {
-       stage('SCM') {
-    steps {
-        checkout scm
+        stage('SCM') {
+            steps {
+                checkout scm
+            }
         }
-    }
-        
 
-      
         stage('Run The Tests') {
             parallel {
                 stage('Frontend Tests') {
@@ -49,7 +46,7 @@ pipeline {
                             echo "Frontend tests passed successfully!"
                         }
                         failure {
-                            echo "Frontend tests failed ! Please check the test logs."
+                            echo "Frontend tests failed! Please check the test logs."
                         }
                     }
                 }
@@ -100,31 +97,29 @@ pipeline {
             }
         }
 
-        /*stage('SonarQube Analysis') {
+        stage('SonarQube Analysis') {
             steps {
                 echo "Running SonarQube analysis..."
-                dir('server') {
-                    withSonarQubeEnv('SonarQube') {
-                        sh '''
+                withSonarQubeEnv('SonarQube') {
+                    dir('server') {
+                        sh """
                             sonar-scanner \
                             -Dsonar.projectKey=server \
                             -Dsonar.sources=. \
-                            -Dsonar.host.url=$SONARQUBE_URL \
-                            -Dsonar.token=$SONARQUBE_TOKEN \
+                            -Dsonar.host.url=${SONARQUBE_URL} \
+                            -Dsonar.token=${SONARQUBE_TOKEN} \
                             -X
-                        '''
+                        """
                     }
-                }
-                dir('frontend') {
-                    withSonarQubeEnv('SonarQube') {
-                        sh '''
+                    dir('frontend') {
+                        sh """
                             sonar-scanner \
                             -Dsonar.projectKey=frontend \
                             -Dsonar.sources=src \
-                            -Dsonar.host.url=$SONARQUBE_URL \
-                            -Dsonar.token=$SONARQUBE_TOKEN \
+                            -Dsonar.host.url=${SONARQUBE_URL} \
+                            -Dsonar.token=${SONARQUBE_TOKEN} \
                             -X
-                        '''
+                        """
                     }
                 }
                 echo "SonarQube analysis is completed!"
@@ -148,15 +143,6 @@ pipeline {
                 echo "Docker images built successfully!"
             }
         }
-*/
-                stage('SonarQube Analysis') {
-            steps {
-                def scannerHome = tool 'SonarScanner'
-                withSonarQubeEnv() {
-                    sh "${scannerHome}/bin/sonar-scanner"
-                        }
-                    }
-                }
 
         stage('Push Docker Images to Nexus') {
             steps {
