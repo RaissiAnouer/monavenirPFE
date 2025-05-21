@@ -1,0 +1,254 @@
+---
+- name: Deploy Docker Compose services on Azure VM
+  hosts: azure_vm
+  become: true
+  become_method: sudo
+  tasks:
+    - name: Create devops directory
+      file:
+        path: /home/adminuser/devops
+        state: directory
+        owner: adminuser
+        group: adminuser
+        mode: '0755'
+
+    - name: Ensure .ssh directory exists for adminuser
+      file:
+        path: /home/adminuser/.ssh
+        state: directory
+        owner: adminuser
+        group: adminuser
+        mode: '0700'
+
+    - name: Add SSH public key for adminuser
+      authorized_key:
+        user: adminuser
+        key: "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC12kUgn8bd1ivlxwU3obwA5C6V9NphaHo44tQr+zpE1987siuvp+Ae1q8ImKj4HWUuKUnCudQdqRz4ZL9WDy9U98HAF3mPuiz7P/eoLl+MPswqrkADnZ0k7ulEq4hlBT7cFrtK4pG+TwKVH/g2eMdKOumgsDwv4MzCr2afHX0TOVA7ui4C5DUcaEu57VzxGX0Y2WJPbkqfi+1GdgjCxquCcji1ciOuVv7OXldWEeTaqltx3GmHU9BuO68NcirDV8LS+d+kCsHRwlyLdw176duTCvENQQ5fZy3wdnThv/i9IEvWyS9a7eyXAxfT0POGZebW0J78+orIsRcKRdn4BVYGZl27KxU9qtTBJpHtSoBIto0vt+DFqeMQcVr4LwYE+a58t36jVxWomAsFllUSp5RfqFJclt7Bdmfbqvx/4uZuBHHL0R3IenfIVy2aVPTodsZsoB7tmzu6zvschKDo51poBe/20JK37QSB6Zk6XenW+rij5Ukc8tSxxIYzNa94Onc2HxTloeWHtp+nRFvGXvBRsorRJxa7F7UNLeyK6uONshZr13mm/Xveizfz21kfZk3LgQ9SIN/okKjw2sHz+SqeORv3oqHExDgHtE6De+Jt6mzLJie7FuR7t+7/kG8U/y913Q79MunoF6owQflKjk/CNLTBsljBhApJlx+Emxv7EQ== adminuser@devops-vm"
+        state: present
+
+    - name: Copy docker-compose.yml to VM
+      copy:
+        src: /home/saber/containers/docker-compose.yml
+        dest: /home/adminuser/devops/docker-compose.yml
+        owner: adminuser
+        group: adminuser
+        mode: '0644'
+
+    - name: Copy prometheus.yml to VM
+      copy:
+        src: /home/saber/containers/prometheus.yml
+        dest: /home/adminuser/devops/prometheus.yml
+        owner: adminuser
+        group: adminuser
+        mode: '0644'
+
+    # Docker Installation
+    - name: Create keyrings directory and add Docker GPG key
+      block:
+        - name: Create keyrings directory
+          file:
+            path: /etc/apt/keyrings
+            state: directory
+            mode: '0755'
+            
+        - name: Add Docker GPG key
+          get_url:
+            url: https://download.docker.com/linux/ubuntu/gpg
+            dest: /etc/apt/keyrings/docker.asc
+            mode: '0644'
+            
+        - name: Add Docker repository
+          apt_repository:
+            repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+            state: present
+            update_cache: yes
+
+    - name: Install Docker and enable service
+      block:
+        - name: Install Docker packages
+          apt:
+            name:
+              - docker-ce
+              - docker-ce-cli
+              - containerd.io
+            state: present
+            
+        - name: Enable Docker service
+          systemd:
+            name: docker
+            state: started
+            enabled: yes
+
+    - name: Ensure docker group exists on the VM
+      group:
+        name: docker
+        state: present
+      register: docker_group_result
+
+    - name: Display docker group creation result
+      debug:
+        var: docker_group_result
+
+    - name: Verify docker group exists
+      shell: getent group docker
+      register: docker_group_check
+      changed_when: false
+      failed_when: docker_group_check.rc != 0
+
+    - name: Display docker group check result
+      debug:
+        var: docker_group_check
+
+    - name: Add adminuser to docker group on the VM
+      user:
+        name: adminuser
+        groups: docker
+        append: true
+      register: user_group_result
+
+    - name: Display user group modification result
+      debug:
+        var: user_group_result
+
+    - name: Ensure Docker socket permissions allow group access on the VM
+      file:
+        path: /var/run/docker.sock
+        owner: root
+        group: docker
+        mode: '0660'
+      notify: Restart Docker
+
+    - name: Ensure volume directories exist
+      file:
+        path: "{{ item }}"
+        state: directory
+        owner: adminuser
+        group: docker
+        mode: '0775'
+      loop:
+        - /home/adminuser/devops/volumes/jenkins_home
+        - /home/adminuser/devops/volumes/sonarqube_data
+        - /home/adminuser/devops/volumes/sonarqube_logs
+        - /home/adminuser/devops/volumes/sonarqube_extensions
+        - /home/adminuser/devops/volumes/postgres_data
+        - /home/adminuser/devops/volumes/prometheus_data
+        - /home/adminuser/devops/volumes/grafana_data
+        - /home/adminuser/devops/volumes/nexus_data
+    - name: Stop and remove existing Docker Compose services
+      community.docker.docker_compose_v2:
+        project_src: /home/adminuser/devops
+        state: absent
+        remove_volumes: false
+      become_user: adminuser
+      ignore_errors: true
+    - name: Remove existing PostgreSQL volume to reset database
+      ansible.builtin.command:
+        cmd: docker volume rm devops_postgres_data
+      register: volume_remove
+      ignore_errors: true
+      changed_when: volume_remove.rc == 0
+      failed_when: false
+    - name: Get Docker group information
+      ansible.builtin.getent:
+        database: group
+        key: docker
+      register: docker_group_info
+      changed_when: false
+    - name: Set Docker GID fact
+      set_fact:
+        docker_gid: "{{ docker_group_info.ansible_facts.getent_group.docker[1] }}"
+      when: docker_group_info.ansible_facts.getent_group.docker is defined
+    - name: Verify adminuser Docker access
+      ansible.builtin.command:
+        cmd: su - adminuser -c "docker ps"
+      register: docker_test
+      changed_when: false
+      failed_when: docker_test.rc != 0
+    - name: Run Docker Compose
+      community.docker.docker_compose_v2:
+        project_src: /home/adminuser/devops
+        state: present
+        build: never
+      become_user: adminuser
+    - name: Wait for PostgreSQL to be healthy
+      ansible.builtin.command:
+        cmd: docker inspect --format="{% raw %}{{.State.Health.Status}}{% endraw %}" postgres
+      register: postgres_health
+      until: postgres_health.stdout == "healthy"
+      retries: 30
+      delay: 5
+      changed_when: false
+      become_user: adminuser
+    - name: Get Debian codename from Jenkins container
+      community.docker.docker_container_exec:
+        container: jenkins
+        command: /bin/bash -c "cat /etc/os-release | grep VERSION_CODENAME | cut -d= -f2"
+        user: root
+      register: debian_codename
+      changed_when: false
+    - name: Display Debian codename for verification
+      debug:
+        var: debian_codename.stdout
+        verbosity: 0
+    - name: Install prerequisites in Jenkins container
+      community.docker.docker_container_exec:
+        container: jenkins
+        command: /bin/bash -c "{{ item }}"
+        user: root
+      loop:
+        - "apt-get update"
+        - "apt-get install -y apt-transport-https ca-certificates curl gnupg lsb-release unzip openjdk-17-jdk"
+        - "mkdir -p /etc/apt/keyrings"
+        - "curl -fsSL https://download.docker.com/linux/debian/gpg | gpg --batch --yes --dearmor -o /etc/apt/keyrings/docker-archive-keyring.gpg"
+        - "echo 'deb [arch=amd64 signed-by=/etc/apt/keyrings/docker-archive-keyring.gpg] https://download.docker.com/linux/debian {{ debian_codename.stdout }} stable' | tee /etc/apt/sources.list.d/docker.list > /dev/null"
+        - "curl -fsSL https://deb.nodesource.com/setup_22.x | bash -"
+        - "curl -sL https://packages.microsoft.com/keys/microsoft.asc | gpg --batch --yes --dearmor | tee /etc/apt/keyrings/microsoft.gpg > /dev/null"
+        - "echo 'deb [arch=amd64 signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/azure-cli/ {{ debian_codename.stdout }} main' | tee /etc/apt/sources.list.d/azure-cli.list"
+        - "apt-get update"
+        - "apt-get install -y docker-ce-cli nodejs azure-cli"
+
+    - name: Ensure docker group exists in Jenkins container
+      community.docker.docker_container_exec:
+        container: jenkins
+        command: /bin/bash -c "groupadd -f docker"
+        user: root
+
+    - name: Add jenkins user to docker group in Jenkins container
+      community.docker.docker_container_exec:
+        container: jenkins
+        command: /bin/bash -c "usermod -aG docker jenkins"
+        user: root
+
+    - name: Ensure Docker socket permissions allow group access in Jenkins container
+      community.docker.docker_container_exec:
+        container: jenkins
+        command: /bin/bash -c "chmod 660 /var/run/docker.sock && chown root:docker /var/run/docker.sock"
+        user: root
+
+    - name: Install Docker Compose in Jenkins container
+      community.docker.docker_container_exec:
+        container: jenkins
+        command: /bin/bash -c "{{ item }}"
+        user: root
+      loop:
+        - "curl -SL https://github.com/docker/compose/releases/download/v2.26.0/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose"
+        - "chmod +x /usr/local/bin/docker-compose"
+
+    - name: Install SonarScanner in Jenkins container
+      community.docker.docker_container_exec:
+        container: jenkins
+        command: /bin/bash -c "{{ item }}"
+        user: root
+      loop:
+        - "rm -rf /opt/sonar-scanner /opt/sonar-scanner-5.0.1.3006-linux"
+        - "curl -sL https://binaries.sonarsource.com/Distribution/sonar-scanner-cli/sonar-scanner-cli-5.0.1.3006-linux.zip -o /tmp/sonar-scanner.zip"
+        - "unzip -o /tmp/sonar-scanner.zip -d /opt"
+        - "mv /opt/sonar-scanner-5.0.1.3006-linux /opt/sonar-scanner"
+        - "ln -sf /opt/sonar-scanner/bin/sonar-scanner /usr/local/bin/sonar-scanner"
+        - "rm /tmp/sonar-scanner.zip"
+
+  handlers:
+    - name: Restart Docker
+      service:
+        name: docker
+        state: restarted

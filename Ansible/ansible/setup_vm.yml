@@ -1,0 +1,154 @@
+  ---
+  - name: Set up Azure VM with Docker and development tools
+    hosts: azure_vm
+    become: yes
+    tasks:
+      - name: Update and install base packages
+        apt:
+          name:
+            - apt-transport-https
+            - ca-certificates
+            - curl
+            - software-properties-common
+            - gnupg
+            - lsb-release
+            - git
+            - certbot
+            - nano
+            - python3-pip
+            - python3
+            - vim
+          state: present
+          update_cache: yes
+
+    # Docker Installation
+    - name: Create keyrings directory and add Docker GPG key
+      block:
+        - name: Create keyrings directory
+          file:
+            path: /etc/apt/keyrings
+            state: directory
+            mode: '0755'
+            
+        - name: Add Docker GPG key
+          get_url:
+            url: https://download.docker.com/linux/ubuntu/gpg
+            dest: /etc/apt/keyrings/docker.asc
+            mode: '0644'
+            
+        - name: Add Docker repository
+          apt_repository:
+            repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+            state: present
+            update_cache: yes
+
+    - name: Install Docker and enable service
+      block:
+        - name: Install Docker packages
+          apt:
+            name:
+              - docker-ce
+              - docker-ce-cli
+              - containerd.io
+            state: present
+            
+        - name: Enable Docker service
+          systemd:
+            name: docker
+            state: started
+            enabled: yes
+            
+        - name: Add adminuser to docker group
+          user:
+            name: adminuser
+            groups: docker
+            append: yes
+            
+        - name: Install Docker Compose
+          get_url:
+            url: https://github.com/docker/compose/releases/download/v2.26.0/docker-compose-linux-x86_64
+            dest: /usr/local/bin/docker-compose
+            mode: '0755'
+
+    # Azure CLI Installation
+    - name: Install Azure CLI
+      block:
+        - name: Add Microsoft GPG key
+          get_url:
+            url: https://packages.microsoft.com/keys/microsoft.asc
+            dest: /etc/apt/keyrings/microsoft.asc
+            mode: '0644'
+            
+        - name: Add Azure CLI repository
+          apt_repository:
+            repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/microsoft.asc] https://packages.microsoft.com/repos/azure-cli/ {{ ansible_distribution_release }} main"
+            state: present
+            update_cache: yes
+            
+        - name: Install Azure CLI
+          apt:
+            name: azure-cli
+            state: present
+
+    # Install JDK 17
+    - name: Install OpenJDK 17
+      apt:
+        name: openjdk-17-jdk
+        state: present
+
+    # Install Node.js 22
+    - name: Install Node.js 22
+      block:
+        - name: Download and run NodeSource setup script
+          shell: |
+            curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
+          args:
+            creates: /etc/apt/sources.list.d/nodesource.list
+            
+        - name: Install Node.js
+          apt:
+            name: nodejs
+            state: present
+            update_cache: yes
+
+    # Docker Configuration
+    - name: Create Docker network for application
+      community.docker.docker_network:
+        name: app_network
+        state: present
+
+    # Pull Docker images
+    - name: Pull required Docker images
+      community.docker.docker_image:
+        name: "{{ item }}"
+        source: pull
+        state: present
+      loop:
+        - sonarqube:latest
+        - jenkins/jenkins:lts
+        - prom/prometheus:latest
+        - grafana/grafana:latest
+        - sonatype/nexus3:latest
+        
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

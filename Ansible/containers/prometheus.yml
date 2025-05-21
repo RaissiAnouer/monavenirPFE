@@ -1,0 +1,33 @@
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  evaluation_interval: 1m
+runtime:
+  gogc: 75
+scrape_configs:
+  - job_name: jenkins
+    honor_timestamps: true
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    metrics_path: /prometheus/
+    scheme: http
+    enable_compression: true
+    follow_redirects: true
+    enable_http2: true
+    static_configs:
+      - targets:
+          - jenkins:8080
+        labels:
+          service: jenkins
+  - job_name: prometheus
+    honor_timestamps: true
+    scrape_interval: 15s
+    scrape_timeout: 10s
+    metrics_path: /metrics
+    scheme: http
+    enable_compression: true
+    follow_redirects: true
+    enable_http2: true
+    static_configs:
+      - targets:
+          - prometheus:9090
