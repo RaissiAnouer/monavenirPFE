@@ -3,13 +3,13 @@ pipeline {
 
     // Environment variables for the pipeline
     environment {
-        DOCKER_REGISTRY = "nexusrepository-https.francecentral.cloudapp.azure.com:7777" // Nexus Docker registry URL
+        DOCKER_REGISTRY = "nexusrepository-https.francecentral.cloudapp.azure.com:6666" // Nexus Docker registry URL
         NEXUS_CREDENTIALS_ID = "nexus-credentials" // Jenkins credentials ID for Nexus
         NODE_VERSION = "22" // Node.js version for the application
         IMAGE_NAME_BACKEND = "monavenir/backend" // Backend Docker image name
         IMAGE_NAME_FRONTEND = "monavenir/frontend" // Frontend Docker image name
         IMAGE_TAG = "${BUILD_NUMBER}" // Docker image tag (Jenkins build number)
-        SONARQUBE_URL = "http://4.211.109.238:9000" // SonarQube server URL
+        SONARQUBE_URL = "http://4.211.109.238:9000" // SonarQube Server URL
         SONARQUBE_TOKEN = credentials('SonarQube') // SonarQube token from Jenkins credentials
         
         // Updated app service names to match exactly what's in Azure
@@ -111,9 +111,7 @@ pipeline {
             }
         }
 
-
-
-        
+       // Stage 4: Code Analysis
         stage('Code Analyse') {
             steps {
                 echo "Running SonarQube analysis..."
@@ -146,20 +144,17 @@ pipeline {
 
                 echo "SonarQube analysis is completed!"
             }
-        
+        }
 
+        stage('Quality Gate') {
+        steps {
+        timeout(time: 2, unit: 'MINUTES') {
+            waitForQualityGate abortPipeline: true
+                }
+            }
+        }
 
-
-
-
-
-
-
-
-
-        
-
-        // Stage 4: Build Docker images
+        // Stage 5: Build Docker images
         stage('Build Docker Images') {
             steps {
                 echo "Building Docker images for backend and frontend..."
@@ -178,7 +173,7 @@ pipeline {
             }
         }
 
-        // Stage 5: Push Docker images to Nexus
+        // Stage 6: Push Docker images to Nexus
         stage('Push Docker Images to Nexus') {
             steps {
                 echo "Pushing Docker images to Nexus repository..."
@@ -203,7 +198,7 @@ pipeline {
             }
         }
 
-        // Stage 6: Deploy to Azure App Service
+        // Stage 7: Deploy to Azure App Service
         stage('Deploy to Azure App Service') {
             steps {
                 echo "Deploying to Azure App Services..."
