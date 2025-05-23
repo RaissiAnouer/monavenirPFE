@@ -13,6 +13,10 @@ RUN npm install
 # Copy the source code
 COPY . .
 
+# Set environment variables for build
+ARG VITE_API_BASE_URL=https://pfe-backend-hac7djg2eubjbsar.canadacentral-01.azurewebsites.net
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
+
 # Build the application
 RUN npm run build
 
