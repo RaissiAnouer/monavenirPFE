@@ -2,7 +2,7 @@ terraform {
   required_providers {
     azurerm = {
       source  = "hashicorp/azurerm"
-      version = "~> 4.1" # Update to latest to avoid potential provider bugs
+      version = "~> 4.1"
     }
   }
 }
@@ -23,11 +23,14 @@ resource "azurerm_linux_web_app" "frontend" {
   resource_group_name = "devops-rg"
   service_plan_id     = azurerm_service_plan.app_service_plan.id
   https_only          = true
-  enabled             = true # Set to false if you want to match the stopped state
+  enabled             = true
 
   site_config {
     application_stack {
-      docker_image_name = "nexusrepository-https.francecentral.cloudapp.azure.com:7777/monavenir/frontend:${var.build_number}"
+      docker_image_name   = "monavenir/frontend:14"
+      docker_registry_url = "https://nexusrepository-https.francecentral.cloudapp.azure.com:6666"
+      docker_registry_username = "admin"
+      docker_registry_password = var.nexus_password
     }
     ftps_state                   = "FtpsOnly"
     always_on                    = true
@@ -35,8 +38,6 @@ resource "azurerm_linux_web_app" "frontend" {
     minimum_tls_version          = "1.2"
     remote_debugging_enabled     = false
     vnet_route_all_enabled       = false
-    # Uncomment if VNet integration is needed
-    # virtual_network_subnet_id = azurerm_subnet.app_service_subnet.id
   }
 
   app_settings = {
@@ -48,7 +49,6 @@ resource "azurerm_linux_web_app" "frontend" {
     type = "SystemAssigned"
   }
 
-  # Increase timeouts to handle API issues
   timeouts {
     create = "10m"
     read   = "10m"
@@ -66,11 +66,14 @@ resource "azurerm_linux_web_app" "backend" {
   resource_group_name = "devops-rg"
   service_plan_id     = azurerm_service_plan.app_service_plan.id
   https_only          = true
-  enabled             = true # Set to false if you want to match the stopped state
+  enabled             = true
 
   site_config {
     application_stack {
-      docker_image_name = "nexusrepository-https.francecentral.cloudapp.azure.com:7777/monavenir/backend:${var.build_number}"
+      docker_image_name   = "monavenir/backend:14"
+      docker_registry_url = "https://nexusrepository-https.francecentral.cloudapp.azure.com:6666"
+      docker_registry_username = "admin"
+      docker_registry_password = var.nexus_password
     }
     ftps_state                   = "FtpsOnly"
     always_on                    = true
@@ -78,8 +81,6 @@ resource "azurerm_linux_web_app" "backend" {
     minimum_tls_version          = "1.2"
     remote_debugging_enabled     = false
     vnet_route_all_enabled       = false
-    # Uncomment if VNet integration is needed
-    # virtual_network_subnet_id = azurerm_subnet.app_service_subnet.id
   }
 
   app_settings = {
@@ -100,7 +101,6 @@ resource "azurerm_linux_web_app" "backend" {
     type = "SystemAssigned"
   }
 
-  # Increase timeouts to handle API issues
   timeouts {
     create = "10m"
     read   = "10m"

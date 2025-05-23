@@ -37,7 +37,6 @@ resource "azurerm_subnet" "app_service_subnet" {
   }
 }
 
-
 resource "azurerm_network_security_group" "devops_nsg" {
   name                = "devops-nsg"
   location            = azurerm_resource_group.devops_rg.location
@@ -66,7 +65,6 @@ resource "azurerm_network_security_group" "devops_nsg" {
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
-
 
   security_rule {
     name                       = "Nexus-80"
@@ -175,6 +173,7 @@ resource "azurerm_network_security_group" "devops_nsg" {
     source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
+
 }
 
 resource "azurerm_subnet_network_security_group_association" "devops_nsg_assoc" {
@@ -204,9 +203,6 @@ resource "azurerm_network_interface" "devops_nic" {
   }
 }
 
-
-
-
 resource "azurerm_linux_virtual_machine" "devops_vm" {
   name                = "devops-vm"
   resource_group_name = azurerm_resource_group.devops_rg.name
@@ -219,7 +215,7 @@ resource "azurerm_linux_virtual_machine" "devops_vm" {
 
   admin_ssh_key {
     username   = "adminuser"
-    public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAABgQCflAJzndJ8nSq2DxI7JJyX2dx/CosCNua3Jv3KfAXtiOgzh+5unm5aYRiTJvX4463/8pZZooMHUWyOy9NKemWE7U1kuNqjj+NCIvfhAnxucPLi9gAXIRnDKaPLL2VRlIwoB9DfuhfLxZo81CKruL5x6tk2/5dl6/yoEx7wUl524g4FMCg75qkBwDFOrHASrdeEkq9B8KCpbY3Sxwp/1j3nQZw+fwOPxsYx+II6pT6OrXoJEmq7wTpQGEvLeMrh2afGcIUJPBNP0MbSzmrSdLzZTMMs5KZwENvbAJO6U5h69FBq/ycrWGNPQq/LIusxE+QBz4SGCWeaLd0RESYGGRh9ALA+Sucf7/kQ5Jjnb2FhJnjoTBgRjZZQTqqCCfl2atrJpiAVZdaUHthRf29Dn0Fu6mNZbn/hnWNFUFEoitAbkZEa7GKeSjDjI0idwyVR3W9OuKFTrXXYF8jfZhNhJKtWiMtJxStKjW6Lab8lvPfZ6IO/ycnOXrpXcyOZMgTh+G0="
+    public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC7BHhdRwKp0NvSEmUEZebicYGglljF09GN/Fu7rlmHxilUhD0efAgXfB4/K+MdrCEI2dRJUgCYVGGwA/WfbTKl3YRiIEJpih1mDbFzOBwJ26EoBUVqjgxZ8GCRdFBfMo5fhBTspVFcshM1+xigjyuciUa6GLDcMauAErQeHV/BRM+6dFjGS49ktlpVw566MceqhzbNKHsEhyp9+sx0NiflEUucH1dmQiJh+6pRlC3ucSI2WKR8yXh+9MmkLCN6ETofjen+IgtG3yPEMeA4HDBHXxcqU5eMCPhIQ0UG7SKPwGhF4uKn8CONawgb4M7IxS0QbAR8BQn30E9FIUeur7bxwLPRH8S++MEgL4BbqqQ4S5Y4k86idoivT1+UG2nMIlxD4UweU+M+TDbx9AwGhsXMPKZAMjn/mI4l+BnlxSnIJeCU8bbprMBU+DFO4sf8SXxW61vkJZmU2Zv/xJevUP6Z5PspxZHt9I/fx3jx26dcg+FObltBZOjq3Bq8N34XcSCwAkuPMK7jdAxvObfhnKgGr4BHlrQzld/sHtkUCUE0ZrFlpjB/b6CUoEZPF36W8/033CkPQavLfB+D+sl7UsEBWfSWfIipwCY8lfEsfMd68/UzPaZbKxPrHW8UettBGkCz25lj+JcyXHmpusIp/2KaHY42nSXT2rrxO24S9pirxw== sabermefteh1925@gmail.com"
   }
 
   os_disk {
@@ -244,4 +240,21 @@ resource "azurerm_linux_virtual_machine" "devops_vm" {
 # Output the public IP address
 output "public_ip_address" {
   value = azurerm_public_ip.devops_public_ip.ip_address
+}
+
+output "vm_details" {
+  value = {
+    name                = azurerm_linux_virtual_machine.devops_vm.name
+    size                = azurerm_linux_virtual_machine.devops_vm.size
+    location            = azurerm_linux_virtual_machine.devops_vm.location
+    admin_username      = azurerm_linux_virtual_machine.devops_vm.admin_username
+    public_ip           = azurerm_public_ip.devops_public_ip.ip_address
+    os_disk_size_gb     = azurerm_linux_virtual_machine.devops_vm.os_disk[0].disk_size_gb
+    os_disk_type        = azurerm_linux_virtual_machine.devops_vm.os_disk[0].storage_account_type
+    image_publisher     = azurerm_linux_virtual_machine.devops_vm.source_image_reference[0].publisher
+    image_offer         = azurerm_linux_virtual_machine.devops_vm.source_image_reference[0].offer
+    image_sku           = azurerm_linux_virtual_machine.devops_vm.source_image_reference[0].sku
+    image_version       = azurerm_linux_virtual_machine.devops_vm.source_image_reference[0].version
+  }
+  description = "Details of the VM that will be created"
 }

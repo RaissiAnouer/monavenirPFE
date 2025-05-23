@@ -28,34 +28,9 @@ services:
     networks:
       - app_network
     restart: unless-stopped
-    depends_on:
-      postgres:
-        condition: service_healthy
     environment:
-      - SONAR_JDBC_URL=jdbc:postgresql://postgres:5432/sonarqube
-      - SONAR_JDBC_USERNAME=sonarqube
-      - SONAR_JDBC_PASSWORD=sonarqube
       - SONAR_ES_BOOTSTRAP_CHECKS_DISABLE=true
     user: "1000:1000"
-
-  postgres:
-    image: postgres:13
-    container_name: postgres
-    networks:
-      - app_network
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    environment:
-      - POSTGRES_USER=sonarqube
-      - POSTGRES_PASSWORD=sonarqube
-      - POSTGRES_DB=sonarqube
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sonarqube"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 10s
 
   prometheus:
     image: prom/prometheus:latest
@@ -89,7 +64,6 @@ volumes:
   sonarqube_data:
   sonarqube_logs:
   sonarqube_extensions:
-  postgres_data:
   prometheus_data:
   grafana_data:
   nexus_data:

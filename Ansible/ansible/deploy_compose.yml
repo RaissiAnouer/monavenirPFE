@@ -130,10 +130,10 @@
         - /home/adminuser/devops/volumes/sonarqube_data
         - /home/adminuser/devops/volumes/sonarqube_logs
         - /home/adminuser/devops/volumes/sonarqube_extensions
-        - /home/adminuser/devops/volumes/postgres_data
         - /home/adminuser/devops/volumes/prometheus_data
         - /home/adminuser/devops/volumes/grafana_data
         - /home/adminuser/devops/volumes/nexus_data
+
     - name: Stop and remove existing Docker Compose services
       community.docker.docker_compose_v2:
         project_src: /home/adminuser/devops
@@ -141,44 +141,33 @@
         remove_volumes: false
       become_user: adminuser
       ignore_errors: true
-    - name: Remove existing PostgreSQL volume to reset database
-      ansible.builtin.command:
-        cmd: docker volume rm devops_postgres_data
-      register: volume_remove
-      ignore_errors: true
-      changed_when: volume_remove.rc == 0
-      failed_when: false
+
     - name: Get Docker group information
       ansible.builtin.getent:
         database: group
         key: docker
       register: docker_group_info
       changed_when: false
+
     - name: Set Docker GID fact
       set_fact:
         docker_gid: "{{ docker_group_info.ansible_facts.getent_group.docker[1] }}"
       when: docker_group_info.ansible_facts.getent_group.docker is defined
+
     - name: Verify adminuser Docker access
       ansible.builtin.command:
         cmd: su - adminuser -c "docker ps"
       register: docker_test
       changed_when: false
       failed_when: docker_test.rc != 0
+
     - name: Run Docker Compose
       community.docker.docker_compose_v2:
         project_src: /home/adminuser/devops
         state: present
         build: never
       become_user: adminuser
-    - name: Wait for PostgreSQL to be healthy
-      ansible.builtin.command:
-        cmd: docker inspect --format="{% raw %}{{.State.Health.Status}}{% endraw %}" postgres
-      register: postgres_health
-      until: postgres_health.stdout == "healthy"
-      retries: 30
-      delay: 5
-      changed_when: false
-      become_user: adminuser
+
     - name: Get Debian codename from Jenkins container
       community.docker.docker_container_exec:
         container: jenkins
@@ -186,10 +175,12 @@
         user: root
       register: debian_codename
       changed_when: false
+
     - name: Display Debian codename for verification
       debug:
         var: debian_codename.stdout
         verbosity: 0
+
     - name: Install prerequisites in Jenkins container
       community.docker.docker_container_exec:
         container: jenkins
