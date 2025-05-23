@@ -18,7 +18,7 @@ pipeline {
         
         BACKEND_URL = "pfe-backend-hac7djg2eubjbsar.canadacentral-01.azurewebsites.net" // Backend URL
         FRONTEND_URL = "pfe-frontend-gyc5frhrczdug0cy.canadacentral-01.azurewebsites.net" // Frontend URL
-        RESOURCE_GROUP = "devops-rg" // Azure resource group name
+        RESOURCE_GROUP = "devops-rg" // Azure resource group name devops-rg
         AZURE_CREDENTIALS_ID = "azure-credentials" // Jenkins credentials ID for Azure
         AZURE_SUBSCRIPTION_ID = "e9ae547c-851b-4bd7-bacc-e72bb89c1221" // Explicit subscription ID
     }
