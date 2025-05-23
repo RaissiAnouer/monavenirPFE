@@ -38,7 +38,7 @@ const AddCourse: React.FC = () => {
     const cleanTitle = title.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
     const fileExtension = file.name.split('.').pop();
     
-    return `${cleanTitle}-${timestamp}-${randomString}.${fileExtension}`;
+    return `/uploads/${cleanTitle}-${timestamp}-${randomString}.${fileExtension}`;
   };
 
   // Image preview handler
