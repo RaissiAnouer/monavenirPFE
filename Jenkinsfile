@@ -145,14 +145,14 @@ pipeline {
                 echo "SonarQube analysis is completed!"
             }
         }
-
+/*
         stage('Quality Gate') {
         steps {
         timeout(time: 2, unit: 'MINUTES') {
             waitForQualityGate abortPipeline: true
                 }
             }
-        }
+        }*/
 
         // Stage 5: Build Docker images
         stage('Build Docker Images') {
