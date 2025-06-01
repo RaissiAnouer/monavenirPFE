@@ -161,6 +161,8 @@ pipeline {
             }
         }
 
+/*        
+
         stage('Push Docker Images to Nexus') {
             steps {
                 echo "Pushing Docker images to Nexus repository..."
@@ -226,6 +228,7 @@ pipeline {
             }
         }
     }
+    */
 
     post {
         always {
