@@ -161,7 +161,6 @@ pipeline {
             }
         }
 
-  /*
 
         stage('Push Docker Images to Nexus') {
             steps {
@@ -227,7 +226,7 @@ pipeline {
                 echo "Deployment to Azure App Services completed successfully!"
             }
         }
-        */
+        
     }
      
 
