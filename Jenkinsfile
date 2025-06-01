@@ -161,7 +161,7 @@ pipeline {
             }
         }
 
-  */
+  /*
 
         stage('Push Docker Images to Nexus') {
             steps {
