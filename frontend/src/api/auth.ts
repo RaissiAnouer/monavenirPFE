@@ -101,10 +101,6 @@ export const authAPI = {
       }
 
       const response = await client.post<SignupResponse>('/api/auth/signup', userData);
-      if (response.data.token) {
-        localStorage.setItem('token', response.data.token);
-        localStorage.setItem('user', JSON.stringify(response.data.user));
-      }
       return response.data;
     } catch (error: any) {
       console.error('Signup error:', error);
@@ -118,6 +114,26 @@ export const authAPI = {
       } else {
         throw new Error('Failed to create account. Please check your password requirements and try again.');
       }
+    }
+  },
+
+  verifyEmail: async (token: string): Promise<{ message: string }> => {
+    try {
+      const response = await client.get(`/api/email/verify-email?token=${token}`);
+      return response.data;
+    } catch (error: any) {
+      console.error('Email verification error:', error);
+      throw error;
+    }
+  },
+
+  resendVerificationEmail: async (email: string): Promise<{ message: string }> => {
+    try {
+      const response = await client.post('/api/email/send-verification', { email });
+      return response.data;
+    } catch (error: any) {
+      console.error('Resend verification email error:', error);
+      throw error;
     }
   },
 
