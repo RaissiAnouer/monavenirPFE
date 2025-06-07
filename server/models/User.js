@@ -42,6 +42,12 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true
   },
+  isEmailVerified: {
+    type: Boolean,
+    default: false
+  },
+  emailVerificationToken: String,
+  emailVerificationExpires: Date,
   enrolledCourses: [{
     type: mongoose.Schema.Types.ObjectId,
     ref: 'Course'
