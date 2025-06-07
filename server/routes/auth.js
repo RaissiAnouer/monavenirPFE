@@ -42,6 +42,60 @@ const generateToken = (user) => {
   );
 };
 
+// Generate email verification token
+const generateVerificationToken = () => {
+  return crypto.randomBytes(32).toString('hex');
+};
+
+// Send verification email
+const sendVerificationEmail = async (email, token, username) => {
+  try {
+    // Create email transporter
+    const transporter = nodemailer.createTransporter({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT, 10),
+      secure: true, // Use SSL for port 465
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+      logger: true,
+      debug: true,
+      tls: {
+        ciphers: 'SSLv3',
+        rejectUnauthorized: true,
+      },
+      pool: true,
+    });
+
+    // Create verification URL
+    const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${token}`;
+
+    // Send verification email
+    const mailOptions = {
+      from: `"MonAvenir.tn Support" <${process.env.SMTP_USER}>`,
+      to: email,
+      subject: 'Email Verification - MonAvenir.tn',
+      html: `
+        <h1>Welcome to MonAvenir.tn!</h1>
+        <p>Dear ${username},</p>
+        <p>Thank you for registering with MonAvenir.tn. Please click the link below to verify your email address:</p>
+        <p><a href="${verificationUrl}" style="padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Verify Email</a></p>
+        <p>This link will expire in 24 hours.</p>
+        <p>If you didn't create an account with us, please ignore this email.</p>
+        <p>Best regards,</p>
+        <p>The MonAvenir.tn Team</p>
+      `,
+    };
+
+    await transporter.sendMail(mailOptions);
+    return true;
+  } catch (error) {
+    console.error('Error sending verification email:', error);
+    return false;
+  }
+};
+
 router.post('/signup', async (req, res) => {
   try {
     const { name, email, password, username, phone, role, state } = req.body;
@@ -438,7 +492,7 @@ router.post('/forgot-password', async (req, res) => {
     const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
 
     // Create email transporter
-    const transporter = nodemailer.createTransport({
+    const transporter = nodemailer.createTransporter({
       host: process.env.SMTP_HOST,
       port: parseInt(process.env.SMTP_PORT, 10),
       secure: true, // Use SSL for port 465
@@ -544,7 +598,7 @@ router.post('/contact', async (req, res) => {
     }
 
     // Create email transporter
-    const transporter = nodemailer.createTransport({
+    const transporter = nodemailer.createTransporter({
       host: process.env.SMTP_HOST,
       port: parseInt(process.env.SMTP_PORT, 10),
       secure: true, // Use SSL for port 465
@@ -606,6 +660,24 @@ router.post('/test-email', async (req, res) => {
     if (!email) {
       return res.status(400).json({ message: 'Email is required' });
     }
+
+    // Create email transporter
+    const transporter = nodemailer.createTransporter({
+      host: process.env.SMTP_HOST,
+      port: parseInt(process.env.SMTP_PORT, 10),
+      secure: true, // Use SSL for port 465
+      auth: {
+        user: process.env.SMTP_USER,
+        pass: process.env.SMTP_PASS,
+      },
+      logger: true,
+      debug: true,
+      tls: {
+        ciphers: 'SSLv3',
+        rejectUnauthorized: true,
+      },
+      pool: true,
+    });
 
     const testMailOptions = {
       from: `"MonAvenir.tn Test" <${process.env.SMTP_USER}>`,
