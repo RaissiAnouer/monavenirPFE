@@ -153,7 +153,7 @@ app.use((req, res, next) => {
 });
 
 // Create upload directories if they don't exist
-const createUploadDirectories = () => {
+const createUploadDirectories = async () => {
   const uploadPaths = [
     path.join(__dirname, 'uploads'),
     path.join(__dirname, 'uploads/images'),
@@ -162,26 +162,26 @@ const createUploadDirectories = () => {
     path.join(__dirname, 'public/images'),
   ];
 
-  uploadPaths.forEach(dir => {
+  for (const dir of uploadPaths) {
     try {
-      if (!fs.existsSync(dir)) {
-        fs.mkdirSync(dir, { recursive: true, mode: 0o755 });
+      if (!await fs.access(dir).then(() => true).catch(() => false)) {
+        await fs.mkdir(dir, { recursive: true, mode: 0o755 });
         console.log(`Created directory: ${dir}`);
       } else {
-        fs.chmodSync(dir, 0o755);
+        await fs.chmod(dir, 0o755);
       }
 
       const testFile = path.join(dir, '.test-write-permission');
-      fs.writeFileSync(testFile, 'test');
-      fs.unlinkSync(testFile);
+      await fs.writeFile(testFile, 'test');
+      await fs.unlink(testFile);
       console.log(`Directory ${dir} is writable`);
     } catch (err) {
       console.error(`Error with directory ${dir}: ${err.message}`);
     }
-  });
+  }
 };
 
-createUploadDirectories();
+createUploadDirectories().catch(console.error);
 
 // Serve static files from uploads directory with proper headers
 app.use('/uploads', express.static('uploads', {
