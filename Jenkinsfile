@@ -61,24 +61,18 @@ pipeline {
                 }
 
                 // Run SonarQube analysis for FRONTEND - FIXED VERSION
-                dir('frontend') {
-                    withSonarQubeEnv('SonarQube') {
-                        sh '''
-                            sonar-scanner \
-                            -Dsonar.projectKey=frontend \
-                            -Dsonar.sources=src \
-                            -Dsonar.exclusions=node_modules/**,dist/**,build/**,coverage/**,public/**,.vite/**,test/** \
-                            -Dsonar.javascript.file.suffixes=.js,.jsx,.ts,.tsx \
-                            -Dsonar.typescript.file.suffixes=.ts,.tsx \
-                            -Dsonar.css.file.suffixes=.css,.scss,.sass \
-                            -Dsonar.sourceEncoding=UTF-8 \
-                            -Dsonar.language=js,ts,css \
-                            -Dsonar.host.url=$SONARQUBE_URL \
-                            -Dsonar.login=$SONARQUBE_TOKEN \
-                            -X
-                        '''
-                    }
+               dir('frontend') {
+                withSonarQubeEnv('SonarQube') {
+                sh '''
+                    sonar-scanner \
+                    -Dsonar.projectKey=frontend \
+                    -Dsonar.sources=src \
+                    -Dsonar.exclusions=node_modules/**,dist/**,build/**,coverage/**,public/**,.vite/**,test/** \
+                    -Dsonar.host.url=$SONARQUBE_URL \
+                    -Dsonar.login=$SONARQUBE_TOKEN
+                '''
                 }
+                    }
 
                 echo "SonarQube analysis completed!"
             }
