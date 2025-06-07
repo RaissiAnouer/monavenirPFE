@@ -99,16 +99,25 @@ router.post('/signup', async (req, res) => {
       role: role.toLowerCase(),
       state: state?.trim(),
       enrolledCourses: [],
-      createdAt: new Date()
+      createdAt: new Date(),
+      isEmailVerified: false
     });
 
     await newUser.save();
 
-    const token = generateToken(newUser);
+    // Generate verification token and send email
+    const token = generateVerificationToken();
+    newUser.emailVerificationToken = token;
+    newUser.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+    await newUser.save();
+
+    const emailSent = await sendVerificationEmail(email, token, newUser.username);
+    if (!emailSent) {
+      console.error('Failed to send verification email');
+    }
 
     res.status(201).json({
-      message: 'User created successfully',
-      token,
+      message: 'User created successfully. Please check your email to verify your account.',
       user: {
         id: newUser._id,
         name: newUser.name,
@@ -153,6 +162,14 @@ router.post('/login', async (req, res) => {
     if (!isMatch) {
       return res.status(400).json({
         message: 'Invalid email or password'
+      });
+    }
+
+    // Check if email is verified
+    if (!user.isEmailVerified) {
+      return res.status(403).json({
+        message: 'Email not verified',
+        details: 'Please verify your email before logging in'
       });
     }
 
@@ -579,6 +596,38 @@ router.post('/contact', async (req, res) => {
   } catch (error) {
     console.error('Contact form error:', error);
     res.status(500).json({ message: 'Error sending message', details: error.message });
+  }
+});
+
+// Test email configuration
+router.post('/test-email', async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email) {
+      return res.status(400).json({ message: 'Email is required' });
+    }
+
+    const testMailOptions = {
+      from: `"MonAvenir.tn Test" <${process.env.SMTP_USER}>`,
+      to: email,
+      subject: 'Test Email from MonAvenir.tn',
+      html: `
+        <h1>Test Email</h1>
+        <p>This is a test email to verify the email configuration.</p>
+        <p>If you're receiving this email, the email service is working correctly.</p>
+      `
+    };
+
+    await transporter.sendMail(testMailOptions);
+    console.log('Test email sent successfully');
+    res.json({ message: 'Test email sent successfully' });
+  } catch (error) {
+    console.error('Test email error:', error);
+    res.status(500).json({ 
+      message: 'Error sending test email',
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 });
 
