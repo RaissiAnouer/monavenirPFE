@@ -46,13 +46,13 @@ pipeline {
                 }
 
                 // Run SonarQube analysis
-                dir('server') {
+               dir('server') {
                     withSonarQubeEnv('SonarQube') {
                         sh '''
                             sonar-scanner \
                             -Dsonar.projectKey=server \
                             -Dsonar.sources=. \
-                            -Dsonar.exclusions=node_modules/**,dist/**,build/**,coverage/** \
+                            -Dsonar.exclusions=node_modules/**,dist/**,build/**,coverage/**,package-lock.json,uploads/** \
                             -Dsonar.host.url=$SONARQUBE_URL \
                             -Dsonar.login=$SONARQUBE_TOKEN \
                             -X
@@ -60,13 +60,17 @@ pipeline {
                     }
                 }
 
-                dir('frontend') {
+               dir('frontend') {
                     withSonarQubeEnv('SonarQube') {
                         sh '''
                             sonar-scanner \
                             -Dsonar.projectKey=frontend \
                             -Dsonar.sources=src \
-                            -Dsonar.exclusions=node_modules/**,dist/**,build/**,coverage/**,public/** \
+                            -Dsonar.exclusions=node_modules/**,dist/**,build/**,coverage/**,public/**,.vite/** \
+                            -Dsonar.typescript.file.suffixes=.ts,.tsx \
+                            -Dsonar.javascript.file.suffixes=.js,.jsx \
+                            -Dsonar.css.file.suffixes=.css \
+                            -Dsonar.sourceEncoding=UTF-8 \
                             -Dsonar.host.url=$SONARQUBE_URL \
                             -Dsonar.login=$SONARQUBE_TOKEN \
                             -X
