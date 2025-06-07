@@ -74,6 +74,7 @@ const Signup = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [verificationSent, setVerificationSent] = useState(false);
 
   const validateForm = () => {
     let isValid = true;
@@ -210,15 +211,8 @@ const Signup = () => {
         };
 
         await authAPI.signup(userData);
-        
-        // Show success message
-        toast.success('Account created successfully! Please login to continue.');
-        
-        // Redirect to login page after a short delay
-        setTimeout(() => {
-          navigate('/login');
-        }, 2000);
-
+        setVerificationSent(true);
+        toast.success('Account created successfully! Please check your email to verify your account.');
       } catch (error: any) {
         console.error('Signup error details:', error.response?.data || error);
         toast.error(error.response?.data?.message || 'Failed to create account. Please try again.');
@@ -231,6 +225,45 @@ const Signup = () => {
       }
     }
   };
+
+  const handleResendVerification = async () => {
+    try {
+      await authAPI.resendVerificationEmail(formData.email);
+      toast.success('Verification email resent successfully!');
+    } catch (error: any) {
+      toast.error(error.response?.data?.message || 'Failed to resend verification email');
+    }
+  };
+
+  if (verificationSent) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4 py-12 sm:px-6 lg:px-8">
+        <div className="max-w-md w-full bg-white rounded-2xl shadow-xl overflow-hidden p-8">
+          <div className="text-center">
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">Check Your Email</h2>
+            <p className="text-gray-600 mb-6">
+              We've sent a verification link to <span className="font-semibold">{formData.email}</span>.
+              Please check your email and click the link to verify your account.
+            </p>
+            <div className="space-y-4">
+              <button
+                onClick={handleResendVerification}
+                className="w-full px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700"
+              >
+                Resend verification email
+              </button>
+              <button
+                onClick={() => navigate('/login')}
+                className="w-full px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-700"
+              >
+                Back to login
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
