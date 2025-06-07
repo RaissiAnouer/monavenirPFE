@@ -7,6 +7,7 @@ const authMiddleware = require('../middleware/auth');
 const verifyRoute = require('./auth/verify');
 const crypto = require('crypto');
 const nodemailer = require('nodemailer');
+const { sendVerificationEmail, generateVerificationCode } = require('../utils/emailService');
 
 router.use('/verify', verifyRoute);
 
@@ -42,59 +43,16 @@ const generateToken = (user) => {
   );
 };
 
-// Generate email verification token
-const generateVerificationToken = () => {
-  return crypto.randomBytes(32).toString('hex');
-};
 
-// Send verification email
-const sendVerificationEmail = async (email, token, username) => {
-  try {
-    // Create email transporter
-    const transporter = nodemailer.createTransporter({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT, 10),
-      secure: true, // Use SSL for port 465
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-      logger: true,
-      debug: true,
-      tls: {
-        ciphers: 'SSLv3',
-        rejectUnauthorized: true,
-      },
-      pool: true,
-    });
 
-    // Create verification URL
-    const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${token}`;
 
-    // Send verification email
-    const mailOptions = {
-      from: `"MonAvenir.tn Support" <${process.env.SMTP_USER}>`,
-      to: email,
-      subject: 'Email Verification - MonAvenir.tn',
-      html: `
-        <h1>Welcome to MonAvenir.tn!</h1>
-        <p>Dear ${username},</p>
-        <p>Thank you for registering with MonAvenir.tn. Please click the link below to verify your email address:</p>
-        <p><a href="${verificationUrl}" style="padding: 10px 20px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px;">Verify Email</a></p>
-        <p>This link will expire in 24 hours.</p>
-        <p>If you didn't create an account with us, please ignore this email.</p>
-        <p>Best regards,</p>
-        <p>The MonAvenir.tn Team</p>
-      `,
-    };
 
-    await transporter.sendMail(mailOptions);
-    return true;
-  } catch (error) {
-    console.error('Error sending verification email:', error);
-    return false;
-  }
-};
+
+
+
+
+
+
 
 router.post('/signup', async (req, res) => {
   try {
@@ -157,17 +115,21 @@ router.post('/signup', async (req, res) => {
       isEmailVerified: false
     });
 
-    await newUser.save();
-
-    // Generate verification token and send email
-    const token = generateVerificationToken();
-    newUser.emailVerificationToken = token;
+    // Generate and set the 6-digit verification code
+    const verificationCode = generateVerificationCode();
+    console.log(`Generated verification code for ${email}: ${verificationCode}`);
+    newUser.emailVerificationToken = verificationCode; // Use the 6-digit code
     newUser.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
     await newUser.save();
 
-    const emailSent = await sendVerificationEmail(email, token, newUser.username);
+    // Send verification email with the 6-digit code
+    const emailSent = await sendVerificationEmail(email, verificationCode, newUser.username);
     if (!emailSent) {
       console.error('Failed to send verification email');
+      return res.status(500).json({
+        message: 'User created but failed to send verification email',
+        details: 'Please try resending the verification email'
+      });
     }
 
     res.status(201).json({
@@ -195,6 +157,32 @@ router.post('/signup', async (req, res) => {
   }
 });
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 router.post('/login', async (req, res) => {
   try {
     const { email, password } = req.body;
@@ -212,18 +200,18 @@ router.post('/login', async (req, res) => {
       });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) {
-      return res.status(400).json({
-        message: 'Invalid email or password'
-      });
-    }
-
     // Check if email is verified
     if (!user.isEmailVerified) {
       return res.status(403).json({
         message: 'Email not verified',
         details: 'Please verify your email before logging in'
+      });
+    }
+
+    const isMatch = await bcrypt.compare(password, user.password);
+    if (!isMatch) {
+      return res.status(400).json({
+        message: 'Invalid email or password'
       });
     }
 
@@ -251,6 +239,12 @@ router.post('/login', async (req, res) => {
     });
   }
 });
+
+
+
+
+
+
 
 router.put('/profile', authMiddleware, async (req, res) => {
   try {
@@ -492,7 +486,7 @@ router.post('/forgot-password', async (req, res) => {
     const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
 
     // Create email transporter
-    const transporter = nodemailer.createTransporter({
+    const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: parseInt(process.env.SMTP_PORT, 10),
       secure: true, // Use SSL for port 465
@@ -598,7 +592,7 @@ router.post('/contact', async (req, res) => {
     }
 
     // Create email transporter
-    const transporter = nodemailer.createTransporter({
+    const transporter = nodemailer.createTransport({
       host: process.env.SMTP_HOST,
       port: parseInt(process.env.SMTP_PORT, 10),
       secure: true, // Use SSL for port 465
@@ -660,24 +654,6 @@ router.post('/test-email', async (req, res) => {
     if (!email) {
       return res.status(400).json({ message: 'Email is required' });
     }
-
-    // Create email transporter
-    const transporter = nodemailer.createTransporter({
-      host: process.env.SMTP_HOST,
-      port: parseInt(process.env.SMTP_PORT, 10),
-      secure: true, // Use SSL for port 465
-      auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS,
-      },
-      logger: true,
-      debug: true,
-      tls: {
-        ciphers: 'SSLv3',
-        rejectUnauthorized: true,
-      },
-      pool: true,
-    });
 
     const testMailOptions = {
       from: `"MonAvenir.tn Test" <${process.env.SMTP_USER}>`,
