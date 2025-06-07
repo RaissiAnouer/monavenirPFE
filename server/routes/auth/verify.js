@@ -1,20 +1,46 @@
 const express = require('express');
-const jwt = require('jsonwebtoken');
 const router = express.Router();
+const User = require('../../models/User');
 
-// Verify token route
-router.post('/', async (req, res) => {
-  const token = req.body.token;
-  console.log('Received token:', token);
+// Verify email route
+router.get('/', async (req, res) => {
+  const { token } = req.query;
+  console.log('Received verification token:', token);
+  
   if (!token) {
-    return res.status(400).json({ message: 'Token is required' });
+    return res.status(400).json({ message: 'Verification token is required' });
   }
+
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    res.status(200).json({ message: 'Token is valid', userId: decoded.id });
+    // Find user with the verification token
+    const user = await User.findOne({
+      emailVerificationToken: token,
+      emailVerificationExpires: { $gt: Date.now() }
+    });
+
+    if (!user) {
+      return res.status(400).json({ 
+        message: 'Invalid or expired verification token',
+        details: 'Please request a new verification email'
+      });
+    }
+
+    // Update user's verification status
+    user.isEmailVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpires = undefined;
+    await user.save();
+
+    res.status(200).json({ 
+      message: 'Email verified successfully',
+      details: 'You can now log in to your account'
+    });
   } catch (error) {
-    console.error('Token verification error:', error);
-    res.status(401).json({ message: 'Invalid token' });
+    console.error('Email verification error:', error);
+    res.status(500).json({ 
+      message: 'Error verifying email',
+      details: 'Please try again or contact support'
+    });
   }
 });
 
