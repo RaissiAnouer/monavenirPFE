@@ -45,8 +45,8 @@ pipeline {
                     sh "npm install"
                 }
 
-                // Run SonarQube analysis
-               dir('server') {
+                // Run SonarQube analysis for BACKEND
+                dir('server') {
                     withSonarQubeEnv('SonarQube') {
                         sh '''
                             sonar-scanner \
@@ -60,17 +60,19 @@ pipeline {
                     }
                 }
 
-               dir('frontend') {
+                // Run SonarQube analysis for FRONTEND - FIXED VERSION
+                dir('frontend') {
                     withSonarQubeEnv('SonarQube') {
                         sh '''
                             sonar-scanner \
                             -Dsonar.projectKey=frontend \
                             -Dsonar.sources=src \
-                            -Dsonar.exclusions=node_modules/**,dist/**,build/**,coverage/**,public/**,.vite/** \
+                            -Dsonar.exclusions=node_modules/**,dist/**,build/**,coverage/**,public/**,.vite/**,test/** \
+                            -Dsonar.javascript.file.suffixes=.js,.jsx,.ts,.tsx \
                             -Dsonar.typescript.file.suffixes=.ts,.tsx \
-                            -Dsonar.javascript.file.suffixes=.js,.jsx \
-                            -Dsonar.css.file.suffixes=.css \
+                            -Dsonar.css.file.suffixes=.css,.scss,.sass \
                             -Dsonar.sourceEncoding=UTF-8 \
+                            -Dsonar.language=js,ts,css \
                             -Dsonar.host.url=$SONARQUBE_URL \
                             -Dsonar.login=$SONARQUBE_TOKEN \
                             -X
