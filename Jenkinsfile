@@ -66,7 +66,7 @@ pipeline {
                 sh '''
                     sonar-scanner \
                     -Dsonar.projectKey=frontend \
-                    -Dsonar.sources=src \
+                    -Dsonar.sources=. \
                     -Dsonar.exclusions=node_modules/**,dist/**,build/**,coverage/**,public/**,.vite/**,test/** \
                     -Dsonar.host.url=$SONARQUBE_URL \
                     -Dsonar.login=$SONARQUBE_TOKEN
