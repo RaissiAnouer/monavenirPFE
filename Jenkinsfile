@@ -31,6 +31,50 @@ pipeline {
             }
         }
 
+                stage('Run Tests') {
+            parallel {
+                stage('Frontend Tests') {
+                    steps {
+                        dir('frontend') {
+                            echo "Running frontend tests..."
+                            sh "npm test -- --run"
+                        }
+                    }
+                    post {
+                        always {
+                            echo "Frontend tests completed"
+                        }
+                        success {
+                            echo "Frontend tests passed successfully!"
+                        }
+                        failure {
+                            echo "Frontend tests failed! Please check the test logs."
+                        }
+                    }
+                }
+                
+                stage('Backend Tests') {
+                    steps {
+                        dir('server') {
+                            echo "Running backend tests..."
+                            sh "npm test"
+                        }
+                    }
+                    post {
+                        always {
+                            echo "Backend tests completed"
+                        }
+                        success {
+                            echo "Backend tests passed successfully!"
+                        }
+                        failure {
+                            echo "Backend tests failed! Please check the test logs."
+                        }
+                    }
+                }
+            }
+        }
+
         // Move Code Analysis BEFORE build and tests
         stage('Code Analysis') {
             steps {
@@ -86,49 +130,7 @@ pipeline {
             }
         }*/
 
-        stage('Run Tests') {
-            parallel {
-                stage('Frontend Tests') {
-                    steps {
-                        dir('frontend') {
-                            echo "Running frontend tests..."
-                            sh "npm test -- --run"
-                        }
-                    }
-                    post {
-                        always {
-                            echo "Frontend tests completed"
-                        }
-                        success {
-                            echo "Frontend tests passed successfully!"
-                        }
-                        failure {
-                            echo "Frontend tests failed! Please check the test logs."
-                        }
-                    }
-                }
-                
-                stage('Backend Tests') {
-                    steps {
-                        dir('server') {
-                            echo "Running backend tests..."
-                            sh "npm test"
-                        }
-                    }
-                    post {
-                        always {
-                            echo "Backend tests completed"
-                        }
-                        success {
-                            echo "Backend tests passed successfully!"
-                        }
-                        failure {
-                            echo "Backend tests failed! Please check the test logs."
-                        }
-                    }
-                }
-            }
-        }
+
 
         stage('Build Application') {
             steps {
