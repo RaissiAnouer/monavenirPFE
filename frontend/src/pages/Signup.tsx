@@ -75,6 +75,10 @@ const Signup = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
+  const [verificationCode, setVerificationCode] = useState('');
+  const [verifying, setVerifying] = useState(false);
+  const [verificationError, setVerificationError] = useState('');
+  const [verificationSuccess, setVerificationSuccess] = useState(false);
 
   const validateForm = () => {
     let isValid = true;
@@ -195,7 +199,9 @@ const Signup = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateForm()) {
+    const validationErrors = validateForm();
+    
+    if (Object.keys(validationErrors).length === 0) {
       setIsLoading(true);
       try {
         // Clean phone number before sending to API
@@ -210,15 +216,31 @@ const Signup = () => {
           state: formData.state
         };
 
+        console.log('Submitting signup with data:', { ...userData, password: '[REDACTED]' });
         await authAPI.signup(userData);
         setVerificationSent(true);
         toast.success('Account created successfully! Please check your email to verify your account.');
       } catch (error: any) {
-        console.error('Signup error details:', error.response?.data || error);
-        toast.error(error.response?.data?.message || 'Failed to create account. Please try again.');
+        console.error('Signup error details:', {
+          message: error.message,
+          response: error.response?.data,
+          status: error.response?.status,
+          statusText: error.response?.statusText
+        });
+        
+        const errorMessage = error.response?.data?.message || error.message || 'Failed to create account';
+        const errorDetails = error.response?.data?.details || '';
+        
+        toast.error(
+          <div>
+            <p className="font-bold">{errorMessage}</p>
+            {errorDetails && <p className="text-sm mt-1">{errorDetails}</p>}
+          </div>
+        );
+        
         setErrors(prev => ({
           ...prev,
-          submit: error.response?.data?.message || 'Failed to create account. Please try again.'
+          submit: errorMessage
         }));
       } finally {
         setIsLoading(false);
@@ -242,23 +264,66 @@ const Signup = () => {
           <div className="text-center">
             <h2 className="text-3xl font-bold text-gray-900 mb-4">Check Your Email</h2>
             <p className="text-gray-600 mb-6">
-              We've sent a verification link to <span className="font-semibold">{formData.email}</span>.
-              Please check your email and click the link to verify your account.
+              We've sent a verification code to <span className="font-semibold">{formData.email}</span>.<br />
+              Please enter the code below to verify your account.
             </p>
-            <div className="space-y-4">
+            <form
+              onSubmit={async (e) => {
+                e.preventDefault();
+                setVerifying(true);
+                setVerificationError('');
+                try {
+                  const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/email/verify-email`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: formData.email, code: verificationCode })
+                  });
+                  const data = await res.json();
+                  if (res.ok) {
+                    setVerificationSuccess(true);
+                    toast.success('Email verified successfully! You can now log in.');
+                    setTimeout(() => navigate('/login'), 2000);
+                  } else {
+                    setVerificationError(data.message || 'Invalid or expired code.');
+                  }
+                } catch (err) {
+                  setVerificationError('Server error. Please try again.');
+                } finally {
+                  setVerifying(false);
+                }
+              }}
+              className="space-y-4"
+            >
+              <input
+                type="text"
+                value={verificationCode}
+                onChange={e => setVerificationCode(e.target.value)}
+                placeholder="Enter verification code"
+                className="w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                required
+              />
+              {verificationError && <p className="text-red-600 text-sm">{verificationError}</p>}
+              {verificationSuccess && <p className="text-green-600 text-sm">Email verified! Redirecting...</p>}
               <button
-                onClick={handleResendVerification}
-                className="w-full px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700"
+                type="submit"
+                className="w-full px-4 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-700"
+                disabled={verifying}
               >
-                Resend verification email
+                {verifying ? 'Verifying...' : 'Verify Email'}
               </button>
-              <button
-                onClick={() => navigate('/login')}
-                className="w-full px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-700"
-              >
-                Back to login
-              </button>
-            </div>
+            </form>
+            <button
+              onClick={handleResendVerification}
+              className="w-full px-4 py-2 text-sm font-medium text-blue-600 hover:text-blue-700 mt-4"
+            >
+              Resend verification email
+            </button>
+            <button
+              onClick={() => navigate('/login')}
+              className="w-full px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-700"
+            >
+              Back to login
+            </button>
           </div>
         </div>
       </div>
