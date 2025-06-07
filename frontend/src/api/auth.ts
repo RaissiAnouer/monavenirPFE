@@ -100,10 +100,28 @@ export const authAPI = {
         );
       }
 
+      console.log('Attempting signup with data:', {
+        ...userData,
+        password: '[REDACTED]',
+        phone: userData.phone,
+        role: userData.role
+      });
+
       const response = await client.post<SignupResponse>('/api/auth/signup', userData);
       return response.data;
     } catch (error: any) {
-      console.error('Signup error:', error);
+      console.error('Signup error details:', {
+        status: error.response?.status,
+        statusText: error.response?.statusText,
+        data: error.response?.data,
+        message: error.message,
+        requestData: {
+          ...userData,
+          password: '[REDACTED]',
+          phone: userData.phone,
+          role: userData.role
+        }
+      });
       
       if (error.response?.data?.message) {
         throw new Error(error.response.data.message);
