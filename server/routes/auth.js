@@ -42,104 +42,44 @@ const generateToken = (user) => {
   );
 };
 
-router.post('/signup', async (req, res) => {
-  try {
-    const { name, email, password, username, phone, role, state } = req.body;
+const signup = async (req, res) => {
+  const { name, email, password, username, phone, role, state } = req.body;
 
-    if (!email || !password || !username || !phone || !role) {
-      return res.status(400).json({ 
-        success: false,
-        message: 'Missing required fields',
-        details: 'Email, password, username, phone, and/or role are required'
-      });
-    }
-
-    if (!validateEmail(email)) {
-      return res.status(400).json({
-        message: 'Invalid email format',
-        details: 'Please provide a valid email address'
-      });
-    }
-
-    if (!validatePhone(phone)) {
-      return res.status(400).json({
-        message: 'Invalid phone number format',
-        details: 'Phone number must be exactly 8 digits'
-      });
-    }
-
-    if (!validatePassword(password)) {
-      return res.status(400).json({
-        success: false,
-        message: 'Password does not meet requirements',
-        details: 'Password must be at least 8 characters long and include uppercase, lowercase, number, and special character (@$!%*?&#)'
-      });
-    }
-
-    const existingUser = await User.findOne({ 
-      $or: [
-        { email: email.toLowerCase() },
-        { username: username.toLowerCase() }
-      ]
-    });
-
-    if (existingUser) {
-      return res.status(400).json({
-        message: 'User already exists',
-        details: 'Email or username is already registered'
-      });
-    }
-
-    const newUser = new User({
-      name: name?.trim() || username.trim(),
-      email: email.toLowerCase().trim(),
-      password: await bcrypt.hash(password, 12),
-      username: username.trim(),
-      phone: phone.trim(),
-      role: role.toLowerCase(),
-      state: state?.trim(),
-      enrolledCourses: [],
-      createdAt: new Date(),
-      isEmailVerified: false
-    });
-
-    await newUser.save();
-
-    // Generate verification token and send email
-    const token = generateVerificationToken();
-    newUser.emailVerificationToken = token;
-    newUser.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
-    await newUser.save();
-
-    const emailSent = await sendVerificationEmail(email, token, newUser.username);
-    if (!emailSent) {
-      console.error('Failed to send verification email');
-    }
-
-    res.status(201).json({
-      message: 'User created successfully. Please check your email to verify your account.',
-      user: {
-        id: newUser._id,
-        name: newUser.name,
-        email: newUser.email,
-        phone: newUser.phone,
-        username: newUser.username,
-        role: newUser.role,
-        state: newUser.state,
-        createdAt: newUser.createdAt,
-        enrolledCourses: []
-      }
-    });
-
-  } catch (error) {
-    console.error('Signup error:', error);
-    res.status(500).json({ 
-      message: 'Server error during signup',
-      details: error.message,
-      error: process.env.NODE_ENV === 'development' ? error : undefined
-    });
+  if (!validateInput({ email, password, username, phone, role })) {
+    return res.status(400).json({ success: false, message: 'Missing required fields', details: 'Email, password, username, phone, and/or role are required' });
   }
-});
+
+  if (!validateEmail(email)) return res.status(400).json({ message: 'Invalid email format' });
+  if (!validatePhone(phone)) return res.status(400).json({ message: 'Invalid phone number format' });
+  if (!validatePassword(password)) return res.status(400).json({ message: 'Password does not meet requirements', details: 'Must include uppercase, lowercase, number, and special character' });
+
+  const existingUser = await User.findOne({ $or: [{ email }, { username }] });
+  if (existingUser) return res.status(400).json({ message: 'User already exists', details: 'Email or username is already registered' });
+
+  const newUser = new User({
+    name: (name || username).trim(),
+    email: email.toLowerCase().trim(),
+    password: await bcrypt.hash(password, 12),
+    username: username.trim(),
+    phone: phone.trim(),
+    role: role.toLowerCase(),
+    state: state?.trim(),
+    isEmailVerified: false,
+  });
+
+  await newUser.save();
+  const token = generateVerificationToken();
+  newUser.emailVerificationToken = token;
+  newUser.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000;
+  await newUser.save();
+
+  await sendVerificationEmail(email, token, username);
+  res.status(201).json({ message: 'User created successfully. Please check your email to verify your account.', user: { id: newUser._id, name: newUser.name, email: newUser.email, ... } });
+};
+
+const validateInput = ({ email, password, username, phone, role }) => email && password && username && phone && role;
+
+router.post('/signup', signup);
 
 router.post('/login', async (req, res) => {
   try {
