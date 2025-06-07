@@ -9,7 +9,7 @@ pipeline {
         IMAGE_NAME_FRONTEND = "monavenir/frontend"
         IMAGE_TAG = "${BUILD_NUMBER}"
         SONARQUBE_URL = "http://4.211.109.238:9000"
-        SONARQUBE_TOKEN = credentials('SonarQube')  
+        SONARQUBE_TOKEN = credentials('SonarQube') 
         BACKEND_APP_NAME = "pfe-backend"
         FRONTEND_APP_NAME = "pfe-frontend"
         BACKEND_URL = "pfe-backend-hac7djg2eubjbsar.canadacentral-01.azurewebsites.net"
@@ -31,13 +31,66 @@ pipeline {
             }
         }
 
-        stage('Run The Tests') {
+        // Move Code Analysis BEFORE build and tests
+        stage('Code Analysis') {
+            steps {
+                echo "Running SonarQube analysis..."
+
+                // Install dependencies first (needed for some analysis)
+                dir('server') {
+                    sh "npm install"
+                }
+                
+                dir('frontend') {
+                    sh "npm install"
+                }
+
+                // Run SonarQube analysis for BACKEND
+                dir('server') {
+                    withSonarQubeEnv('SonarQube') {
+                        sh '''
+                            sonar-scanner \
+                            -Dsonar.projectKey=server \
+                            -Dsonar.sources=. \
+                            -Dsonar.exclusions=node_modules/**,dist/**,build/**,coverage/**,package-lock.json,uploads/** \
+                            -Dsonar.host.url=$SONARQUBE_URL \
+                            -Dsonar.login=$SONARQUBE_TOKEN \
+                            -X
+                        '''
+                    }
+                }
+
+                // Run SonarQube analysis for FRONTEND - FIXED VERSION
+              dir('frontend') {
+            withSonarQubeEnv('SonarQube') {
+                sh '''
+                    sonar-scanner \
+                    -Dsonar.projectKey=frontend \
+                    -Dsonar.sources=src \
+                    -Dsonar.exclusions=node_modules/**,dist/**,build/**,coverage/**,public/**,.vite/**,test/** \
+                    -Dsonar.host.url=$SONARQUBE_URL \
+                    -Dsonar.login=$SONARQUBE_TOKEN
+                '''
+            }
+        }
+
+                echo "SonarQube analysis completed!"
+            }
+        }
+
+      /*  stage('Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }*/
+
+        stage('Run Tests') {
             parallel {
                 stage('Frontend Tests') {
                     steps {
                         dir('frontend') {
-                            echo "Installing frontend dependencies..."
-                            sh "npm install"
                             echo "Running frontend tests..."
                             sh "npm test -- --run"
                         }
@@ -58,8 +111,6 @@ pipeline {
                 stage('Backend Tests') {
                     steps {
                         dir('server') {
-                            echo "Installing backend dependencies..."
-                            sh "npm install"
                             echo "Running backend tests..."
                             sh "npm test"
                         }
@@ -84,15 +135,11 @@ pipeline {
                 echo "Starting the build process for the MERN e-learning platform..."
 
                 dir('server') {
-                    echo "Installing backend dependencies..."
-                    sh "npm install"
                     echo "Building backend application..."
                     sh "npm run build"
                 }
 
                 dir('frontend') {
-                    echo "Installing frontend dependencies..."
-                    sh "npm install"
                     echo "Building frontend application..."
                     sh "npm run build"
                 }
@@ -100,48 +147,6 @@ pipeline {
                 echo "Build stage completed successfully!"
             }
         }
-
-        stage('Code Analyse') {
-            steps {
-                echo "Running SonarQube analysis..."
-
-                dir('server') {
-                    withSonarQubeEnv('SonarQube') {
-                        sh '''
-                            sonar-scanner \
-                            -Dsonar.projectKey=server \
-                            -Dsonar.sources=. \
-                            -Dsonar.host.url=$SONARQUBE_URL \
-                            -Dsonar.login=$SONARQUBE_TOKEN \
-                            -X
-                        '''
-                    }
-                }
-
-                dir('frontend') {
-                    withSonarQubeEnv('SonarQube') {
-                        sh '''
-                            sonar-scanner \
-                            -Dsonar.projectKey=frontend \
-                            -Dsonar.sources=src \
-                            -Dsonar.host.url=$SONARQUBE_URL \
-                            -Dsonar.login=$SONARQUBE_TOKEN \
-                            -X
-                        '''
-                    }
-                }
-
-                echo "SonarQube analysis is completed!"
-            }
-        }
-
-        /*   stage('Quality Gate') {    
-            steps {
-                timeout(time: 2, unit: 'MINUTES') {
-                    waitForQualityGate abortPipeline: true
-                }
-            }
-        } */
 
         stage('Build Docker Images') {
             steps {
@@ -196,7 +201,7 @@ pipeline {
                         sh 'az login -u $AZURE_USER -p $AZURE_PASSWORD'
                         sh "az account set --subscription ${AZURE_SUBSCRIPTION_ID}"
                     }
-    
+
                     script {
                         sh '''
                             az webapp config container set \
