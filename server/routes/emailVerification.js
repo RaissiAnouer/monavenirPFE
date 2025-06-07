@@ -1,9 +1,8 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
-const { generateVerificationToken, sendVerificationEmail } = require('../utils/emailService');
+const { generateVerificationCode, sendVerificationEmail } = require('../utils/emailService');
 
-// Send verification email
 router.post('/send-verification', async (req, res) => {
   try {
     const { email } = req.body;
@@ -17,12 +16,23 @@ router.post('/send-verification', async (req, res) => {
       return res.status(400).json({ message: 'Email already verified' });
     }
 
-    const token = generateVerificationToken();
-    user.emailVerificationToken = token;
+    // Check if there's an existing valid token
+    if (user.emailVerificationToken && user.emailVerificationExpires > Date.now()) {
+      const code = user.emailVerificationToken;
+      const emailSent = await sendVerificationEmail(email, code, user.username);
+      if (!emailSent) {
+        return res.status(500).json({ message: 'Error sending verification email' });
+      }
+      return res.status(200).json({ message: 'Verification email sent successfully' });
+    }
+
+    // Generate a new code if no valid token exists
+    const code = generateVerificationCode();
+    user.emailVerificationToken = code;
     user.emailVerificationExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
     await user.save();
 
-    const emailSent = await sendVerificationEmail(email, token, user.username);
+    const emailSent = await sendVerificationEmail(email, code, user.username);
     if (!emailSent) {
       return res.status(500).json({ message: 'Error sending verification email' });
     }
@@ -34,17 +44,17 @@ router.post('/send-verification', async (req, res) => {
   }
 });
 
-// Verify email
-router.get('/verify-email', async (req, res) => {
+router.post('/verify-email', async (req, res) => {
   try {
-    const { token } = req.query;
+    const { email, code } = req.body;
     const user = await User.findOne({
-      emailVerificationToken: token,
+      email: email,
+      emailVerificationToken: code,
       emailVerificationExpires: { $gt: Date.now() }
     });
 
     if (!user) {
-      return res.status(400).json({ message: 'Invalid or expired verification token' });
+      return res.status(400).json({ message: 'Invalid or expired verification code' });
     }
 
     user.isEmailVerified = true;
@@ -52,7 +62,7 @@ router.get('/verify-email', async (req, res) => {
     user.emailVerificationExpires = undefined;
     await user.save();
 
-    res.status(200).json({ 
+    res.status(200).json({
       message: 'Email verified successfully',
       user: {
         id: user._id,
@@ -68,4 +78,4 @@ router.get('/verify-email', async (req, res) => {
   }
 });
 
-module.exports = router; 
+module.exports = router;
