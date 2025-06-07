@@ -33,35 +33,35 @@ pipeline {
 
         // Move Code Analysis BEFORE build and tests
         stage('Code Analysis') {
-    steps {
-        echo "Running SonarQube analysis..."
+            steps {
+                echo "Running SonarQube analysis..."
 
-        // Install dependencies first (needed for some analysis)
-        dir('server') {
-            sh "npm install"
-        }
-        
-        dir('frontend') {
-            sh "npm install"
-        }
+                // Install dependencies first (needed for some analysis)
+                dir('server') {
+                    sh "npm install"
+                }
+                
+                dir('frontend') {
+                    sh "npm install"
+                }
 
-        // Run SonarQube analysis for BACKEND
-        dir('server') {
-            withSonarQubeEnv('SonarQube') {
-                sh '''
-                    sonar-scanner \
-                    -Dsonar.projectKey=server \
-                    -Dsonar.sources=. \
-                    -Dsonar.exclusions=node_modules/**,dist/**,build/**,coverage/**,package-lock.json,uploads/** \
-                    -Dsonar.host.url=$SONARQUBE_URL \
-                    -Dsonar.login=$SONARQUBE_TOKEN \
-                    -X
-                '''
-            }
-        }
+                // Run SonarQube analysis for BACKEND
+                dir('server') {
+                    withSonarQubeEnv('SonarQube') {
+                        sh '''
+                            sonar-scanner \
+                            -Dsonar.projectKey=server \
+                            -Dsonar.sources=. \
+                            -Dsonar.exclusions=node_modules/**,dist/**,build/**,coverage/**,package-lock.json,uploads/** \
+                            -Dsonar.host.url=$SONARQUBE_URL \
+                            -Dsonar.login=$SONARQUBE_TOKEN \
+                            -X
+                        '''
+                    }
+                }
 
-        // Run SonarQube analysis for FRONTEND - Updated to analyze src folder comprehensively
-        dir('frontend') {
+                // Run SonarQube analysis for FRONTEND - FIXED VERSION
+              dir('frontend') {
             withSonarQubeEnv('SonarQube') {
                 sh '''
                     sonar-scanner \
@@ -73,24 +73,6 @@ pipeline {
                 '''
             }
         }
-
-        echo "SonarQube analysis completed!"
-    }
-}
-
-                // Run SonarQube analysis for FRONTEND - FIXED VERSION
-               dir('frontend') {
-                withSonarQubeEnv('SonarQube') {
-                sh '''
-                    sonar-scanner \
-                    -Dsonar.projectKey=frontend \
-                    -Dsonar.sources=. \
-                    -Dsonar.exclusions=node_modules/**,dist/**,build/**,coverage/**,public/**,.vite/**,test/** \
-                    -Dsonar.host.url=$SONARQUBE_URL \
-                    -Dsonar.login=$SONARQUBE_TOKEN
-                '''
-                }
-                    }
 
                 echo "SonarQube analysis completed!"
             }
