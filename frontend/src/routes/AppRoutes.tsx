@@ -11,6 +11,7 @@ import Signup from '../pages/Signup';
 import ProtectedRoute from '../components/auth/ProtectedRoute';
 import UserProfile from '../pages/UserProfile';
 import CourseContent from '../pages/CourseContent';
+import VerifyEmail from '../pages/VerifyEmail';
 
 const AppRoutes = () => {
   return (
@@ -40,6 +41,7 @@ const AppRoutes = () => {
       <Route path="/contact" element={<Contact />} />
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+      <Route path="/verify-email" element={<VerifyEmail />} />
       <Route
         path="/profile"
         element={
