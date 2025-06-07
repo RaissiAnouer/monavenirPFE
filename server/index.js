@@ -237,31 +237,19 @@ app.get('/api/stream/:filename', (req, res) => {
   const filename = req.params.filename;
   const filePath = path.join(__dirname, 'uploads', 'videos', filename);
 
-  console.log(`Streaming request for: ${filename}`);
-  console.log(`Token: ${token ? token : 'missing'}`);
-
   if (!/^[a-zA-Z0-9_\-\.]+$/.test(filename)) {
-    console.log('Invalid filename:', filename);
     return res.status(400).json({ message: 'Invalid filename' });
   }
 
-  if (!token) {
-    console.log('No token provided');
-    return res.status(401).json({ message: 'No token provided' });
-  }
+  if (!token) return res.status(401).json({ message: 'No token provided' });
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    console.log('Token verified:', decoded);
+    jwt.verify(token, process.env.JWT_SECRET);
   } catch (err) {
-    console.log('Token verification failed:', err.message);
     return res.status(401).json({ message: 'Invalid token' });
   }
 
-  if (!fs.existsSync(filePath)) {
-    console.log(`File not found: ${filePath}`);
-    return res.status(404).json({ message: 'Video not found' });
-  }
+  if (!fs.existsSync(filePath)) return res.status(404).json({ message: 'Video not found' });
 
   const stat = fs.statSync(filePath);
   const fileSize = stat.size;
@@ -277,43 +265,24 @@ app.get('/api/stream/:filename', (req, res) => {
     const chunksize = end - start + 1;
 
     if (start >= fileSize || end >= fileSize) {
-      return res.status(416).json({ message: 'Requested range is not satisfiable' });
+      return res.status(416).json({ message: 'Requested range not satisfiable' });
     }
 
     const file = fs.createReadStream(filePath, { start, end });
-    const head = {
+    res.writeHead(206, {
       'Content-Range': `bytes ${start}-${end}/${fileSize}`,
       'Accept-Ranges': 'bytes',
       'Content-Length': chunksize,
       'Content-Type': 'video/mp4',
-    };
-
-    res.writeHead(206, head);
-    file.pipe(res);
-
-    file.on('error', (err) => {
-      console.error(`Stream error: ${err.message}`);
-      if (!res.headersSent) {
-        res.status(500).json({ message: 'Error streaming video' });
-      }
     });
+    file.pipe(res);
   } else {
-    const head = {
+    res.writeHead(200, {
       'Content-Length': fileSize,
       'Content-Type': 'video/mp4',
       'Accept-Ranges': 'bytes',
-    };
-
-    res.writeHead(200, head);
-    const file = fs.createReadStream(filePath);
-    file.pipe(res);
-
-    file.on('error', (err) => {
-      console.error(`Stream error: ${err.message}`);
-      if (!res.headersSent) {
-        res.status(500).json({ message: 'Error streaming video' });
-      }
     });
+    fs.createReadStream(filePath).pipe(res);
   }
 });
 
