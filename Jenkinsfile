@@ -9,7 +9,7 @@ pipeline {
         IMAGE_NAME_FRONTEND = "monavenir/frontend"
         IMAGE_TAG = "${BUILD_NUMBER}"
         SONARQUBE_URL = "http://4.211.109.238:9000"
-        SONARQUBE_TOKEN = credentials('SonarQube')
+        SONARQUBE_TOKEN = credentials('SonarQube') 
         BACKEND_APP_NAME = "pfe-backend"
         FRONTEND_APP_NAME = "pfe-frontend"
         BACKEND_URL = "pfe-backend-hac7djg2eubjbsar.canadacentral-01.azurewebsites.net"
