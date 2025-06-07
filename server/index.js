@@ -186,18 +186,23 @@ createUploadDirectories().catch(console.error);
 // Serve static files from uploads directory with proper headers
 app.use('/uploads', express.static('uploads', {
   setHeaders: (res, path) => {
-    // Set CORS headers
-    res.set('Access-Control-Allow-Origin', '*');
+    const origin = req.headers.origin;
+    const allowedOrigins = [
+      'http://localhost:3000',
+      'http://localhost:5173',
+      'https://pfe-frontend-gyc5frhrczdug0cy.canadacentral-01.azurewebsites.net',
+    ];
+    if (origin && allowedOrigins.includes(origin)) {
+      res.set('Access-Control-Allow-Origin', origin);
+    }
     res.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
     res.set('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    
-    // Set caching headers for images
+
     if (path.endsWith('.jpg') || path.endsWith('.jpeg') || path.endsWith('.png') || path.endsWith('.gif') || path.endsWith('.webp')) {
-      res.set('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+      res.set('Cache-Control', 'public, max-age=31536000');
       res.set('Content-Type', getContentType(path));
     }
-    
-    // Set security headers
+
     res.set('Cross-Origin-Resource-Policy', 'cross-origin');
     res.set('X-Content-Type-Options', 'nosniff');
   }
