@@ -2,7 +2,7 @@ const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 
 // Create reusable transporter object using SMTP transport
-const transporter = nodemailer.createTransporter({
+const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
   port: parseInt(process.env.SMTP_PORT, 10),
   secure: true, // true for 465, false for other ports
@@ -13,9 +13,7 @@ const transporter = nodemailer.createTransporter({
   debug: true,
   logger: true,
   tls: {
-    // Remove the outdated SSLv3 cipher specification
     rejectUnauthorized: true,
-    // Let the system choose appropriate ciphers
     minVersion: 'TLSv1.2' // Ensure minimum TLS version
   }
 });
@@ -31,7 +29,6 @@ transporter.verify(function(error, success) {
 
 // Generate a 6-digit verification code
 const generateVerificationCode = () => {
-  // Generate a random 6-digit number (100000 to 999999)
   const code = Math.floor(100000 + Math.random() * 900000);
   return code.toString().padStart(6, '0'); // Ensure 6 digits with leading zeros
 };
@@ -39,7 +36,6 @@ const generateVerificationCode = () => {
 // Send verification email
 const sendVerificationEmail = async (email, code, username) => {
   try {
-    // Log the code being sent for debugging
     console.log(`Sending verification email to ${email} with code: ${code}`);
     
     const mailOptions = {
