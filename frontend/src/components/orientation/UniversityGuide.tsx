@@ -33,7 +33,7 @@ const pdfFiles: PDFFile[] = [
     id: '2',
     title: 'Orientation Post-Bac',
     description: 'Informations sur le processus d\'orientation universitaire',
-    filename: 'orientation-post-bac.pdf',
+    filename: 'sd_par_univ_22_23_24.pdf',
     category: 'Orientation',
     date: '2024-03-22'
   }
