@@ -17,6 +17,7 @@ const mongoSanitize = require('express-mongo-sanitize');
 const rateLimit = require('express-rate-limit');
 const auth = require('./middleware/auth');
 const jwt = require('jsonwebtoken');
+const emailVerificationRoutes = require('./routes/emailVerification');
 
 console.log('MONGO_URI:', process.env.MONGO_URI ? 'exists' : 'missing');
 console.log('JWT_SECRET:', process.env.JWT_SECRET ? 'exists' : 'missing');
@@ -153,7 +154,7 @@ app.use((req, res, next) => {
 });
 
 // Create upload directories if they don't exist
-const createUploadDirectories = async () => {
+const createUploadDirectories = () => {
   const uploadPaths = [
     path.join(__dirname, 'uploads'),
     path.join(__dirname, 'uploads/images'),
@@ -162,47 +163,42 @@ const createUploadDirectories = async () => {
     path.join(__dirname, 'public/images'),
   ];
 
-  for (const dir of uploadPaths) {
+  uploadPaths.forEach(dir => {
     try {
-      if (!await fs.access(dir).then(() => true).catch(() => false)) {
-        await fs.mkdir(dir, { recursive: true, mode: 0o755 });
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true, mode: 0o755 });
         console.log(`Created directory: ${dir}`);
       } else {
-        await fs.chmod(dir, 0o755);
+        fs.chmodSync(dir, 0o755);
       }
 
       const testFile = path.join(dir, '.test-write-permission');
-      await fs.writeFile(testFile, 'test');
-      await fs.unlink(testFile);
+      fs.writeFileSync(testFile, 'test');
+      fs.unlinkSync(testFile);
       console.log(`Directory ${dir} is writable`);
     } catch (err) {
       console.error(`Error with directory ${dir}: ${err.message}`);
     }
-  }
+  });
 };
 
-createUploadDirectories().catch(console.error);
+createUploadDirectories();
 
 // Serve static files from uploads directory with proper headers
 app.use('/uploads', express.static('uploads', {
   setHeaders: (res, path) => {
-    const origin = req.headers.origin;
-    const allowedOrigins = [
-      'http://localhost:3000',
-      'http://localhost:5173',
-      'https://pfe-frontend-gyc5frhrczdug0cy.canadacentral-01.azurewebsites.net',
-    ];
-    if (origin && allowedOrigins.includes(origin)) {
-      res.set('Access-Control-Allow-Origin', origin);
-    }
+    // Set CORS headers
+    res.set('Access-Control-Allow-Origin', '*');
     res.set('Access-Control-Allow-Methods', 'GET, HEAD, OPTIONS');
     res.set('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-
+    
+    // Set caching headers for images
     if (path.endsWith('.jpg') || path.endsWith('.jpeg') || path.endsWith('.png') || path.endsWith('.gif') || path.endsWith('.webp')) {
-      res.set('Cache-Control', 'public, max-age=31536000');
+      res.set('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
       res.set('Content-Type', getContentType(path));
     }
-
+    
+    // Set security headers
     res.set('Cross-Origin-Resource-Policy', 'cross-origin');
     res.set('X-Content-Type-Options', 'nosniff');
   }
@@ -237,19 +233,31 @@ app.get('/api/stream/:filename', (req, res) => {
   const filename = req.params.filename;
   const filePath = path.join(__dirname, 'uploads', 'videos', filename);
 
+  console.log(`Streaming request for: ${filename}`);
+  console.log(`Token: ${token ? token : 'missing'}`);
+
   if (!/^[a-zA-Z0-9_\-\.]+$/.test(filename)) {
+    console.log('Invalid filename:', filename);
     return res.status(400).json({ message: 'Invalid filename' });
   }
 
-  if (!token) return res.status(401).json({ message: 'No token provided' });
+  if (!token) {
+    console.log('No token provided');
+    return res.status(401).json({ message: 'No token provided' });
+  }
 
   try {
-    jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    console.log('Token verified:', decoded);
   } catch (err) {
+    console.log('Token verification failed:', err.message);
     return res.status(401).json({ message: 'Invalid token' });
   }
 
-  if (!fs.existsSync(filePath)) return res.status(404).json({ message: 'Video not found' });
+  if (!fs.existsSync(filePath)) {
+    console.log(`File not found: ${filePath}`);
+    return res.status(404).json({ message: 'Video not found' });
+  }
 
   const stat = fs.statSync(filePath);
   const fileSize = stat.size;
@@ -265,24 +273,43 @@ app.get('/api/stream/:filename', (req, res) => {
     const chunksize = end - start + 1;
 
     if (start >= fileSize || end >= fileSize) {
-      return res.status(416).json({ message: 'Requested range not satisfiable' });
+      return res.status(416).json({ message: 'Requested range is not satisfiable' });
     }
 
     const file = fs.createReadStream(filePath, { start, end });
-    res.writeHead(206, {
+    const head = {
       'Content-Range': `bytes ${start}-${end}/${fileSize}`,
       'Accept-Ranges': 'bytes',
       'Content-Length': chunksize,
       'Content-Type': 'video/mp4',
-    });
+    };
+
+    res.writeHead(206, head);
     file.pipe(res);
+
+    file.on('error', (err) => {
+      console.error(`Stream error: ${err.message}`);
+      if (!res.headersSent) {
+        res.status(500).json({ message: 'Error streaming video' });
+      }
+    });
   } else {
-    res.writeHead(200, {
+    const head = {
       'Content-Length': fileSize,
       'Content-Type': 'video/mp4',
       'Accept-Ranges': 'bytes',
+    };
+
+    res.writeHead(200, head);
+    const file = fs.createReadStream(filePath);
+    file.pipe(res);
+
+    file.on('error', (err) => {
+      console.error(`Stream error: ${err.message}`);
+      if (!res.headersSent) {
+        res.status(500).json({ message: 'Error streaming video' });
+      }
     });
-    fs.createReadStream(filePath).pipe(res);
   }
 });
 
@@ -381,6 +408,7 @@ app.use('/api/courses', courseRoutes);
 app.use('/api/courses', videoUploadRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/user', userRoutes);
+app.use('/api/email', emailVerificationRoutes);
 
 // PDF download route with rate limiting
 const pdfLimiter = rateLimit({
