@@ -2,10 +2,10 @@ const nodemailer = require('nodemailer');
 const crypto = require('crypto');
 
 // Create reusable transporter object using SMTP transport
-const transporter = nodemailer.createTransport({
+const transporter = nodemailer.createTransporter({
   host: process.env.SMTP_HOST,
   port: parseInt(process.env.SMTP_PORT, 10),
-  secure: true,
+  secure: true, // true for 465, false for other ports
   auth: {
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS
@@ -13,8 +13,10 @@ const transporter = nodemailer.createTransport({
   debug: true,
   logger: true,
   tls: {
-    ciphers: 'SSLv3',
-    rejectUnauthorized: true
+    // Remove the outdated SSLv3 cipher specification
+    rejectUnauthorized: true,
+    // Let the system choose appropriate ciphers
+    minVersion: 'TLSv1.2' // Ensure minimum TLS version
   }
 });
 
