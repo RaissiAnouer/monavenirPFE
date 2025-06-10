@@ -273,21 +273,12 @@ const Signup = () => {
                 setVerifying(true);
                 setVerificationError('');
                 try {
-                  const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://pfe-backend-hac7djg2eubjbsar.canadacentral-01.azurewebsites.net/'}/api/email/verify-email`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ email: formData.email, code: verificationCode })
-                  });
-                  const data = await res.json();
-                  if (res.ok) {
-                    setVerificationSuccess(true);
-                    toast.success('Email verified successfully! You can now log in.');
-                    setTimeout(() => navigate('/login'), 2000);
-                  } else {
-                    setVerificationError(data.message || 'Invalid or expired code.');
-                  }
-                } catch (err) {
-                  setVerificationError('Server error. Please try again.');
+                  await authAPI.verifyEmail(formData.email, verificationCode);
+                  setVerificationSuccess(true);
+                  toast.success('Email verified successfully! You can now log in.');
+                  setTimeout(() => navigate('/login'), 2000);
+                } catch (err: any) {
+                  setVerificationError(err.response?.data?.message || 'Server error. Please try again.');
                 } finally {
                   setVerifying(false);
                 }

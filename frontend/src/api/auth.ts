@@ -134,9 +134,9 @@ export const authAPI = {
     }
   },
 
-  verifyEmail: async (token: string): Promise<{ message: string }> => {
+  verifyEmail: async (email: string, code: string): Promise<{ message: string }> => {
     try {
-      const response = await client.get(`/api/email/verify-email?token=${token}`);
+      const response = await client.post<{ message: string }>('/api/email/verify-email', { email, code });
       return response.data;
     } catch (error: any) {
       console.error('Email verification error:', error);

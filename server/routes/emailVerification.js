@@ -47,14 +47,25 @@ router.post('/send-verification', async (req, res) => {
 router.post('/verify-email', async (req, res) => {
   try {
     const { email, code } = req.body;
+    
+    if (!email || !code) {
+      return res.status(400).json({ 
+        message: 'Missing required fields',
+        details: 'Email and verification code are required'
+      });
+    }
+
     const user = await User.findOne({
-      email: email,
+      email: email.toLowerCase(),
       emailVerificationToken: code,
       emailVerificationExpires: { $gt: Date.now() }
     });
 
     if (!user) {
-      return res.status(400).json({ message: 'Invalid or expired verification code' });
+      return res.status(400).json({ 
+        message: 'Invalid or expired verification code',
+        details: 'Please request a new verification email'
+      });
     }
 
     user.isEmailVerified = true;
@@ -74,7 +85,10 @@ router.post('/verify-email', async (req, res) => {
     });
   } catch (error) {
     console.error('Error in verify-email:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ 
+      message: 'Error verifying email',
+      details: 'Please try again or contact support'
+    });
   }
 });
 
