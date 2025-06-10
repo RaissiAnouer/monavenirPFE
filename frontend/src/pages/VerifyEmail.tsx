@@ -17,7 +17,7 @@ const VerifyEmail = () => {
     setError('');
     setVerificationStatus(null);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/email/verify-email`, {
+      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://pfe-backend-hac7djg2eubjbsar.canadacentral-01.azurewebsites.net/'}/api/email/verify-email`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, code })

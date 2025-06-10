@@ -9,7 +9,7 @@ import PageBanner from '../components/shared/PageBanner';
 import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { fixResourceUrl } from '../utils/imageUtils';
-import axios from 'axios';
+import axios, { type AxiosRequestConfig } from 'axios';
 
 // Custom scrollbar styles
 const scrollbarStyles = `
@@ -54,12 +54,12 @@ const VideoPlayer: React.FC<{ src: string; poster?: string }> = ({ src, poster }
         const filename = src.split('/').pop();
         if (filename) {
           const token = localStorage.getItem('token');
-          const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+          const baseUrl = import.meta.env.VITE_API_BASE_URL || 'https://pfe-backend-hac7djg2eubjbsar.canadacentral-01.azurewebsites.net/';
           return `${baseUrl}/api/stream/${filename}?token=${token}&t=${Date.now()}`;
         }
       } else if (src.startsWith('/uploads')) {
         const token = localStorage.getItem('token');
-        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
+        const baseUrl = import.meta.env.VITE_API_BASE_URL || 'https://pfe-backend-hac7djg2eubjbsar.canadacentral-01.azurewebsites.net/';
         return `${baseUrl}${src}?token=${token}&t=${Date.now()}`;
       }
       return src;
@@ -235,7 +235,7 @@ const VideoPlayer: React.FC<{ src: string; poster?: string }> = ({ src, poster }
   const fixedPoster = useMemo(() => {
     try {
       if (poster && poster.startsWith('/uploads')) {
-        return `${import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000'}${poster}`;
+        return `${import.meta.env.VITE_API_BASE_URL || 'https://pfe-backend-hac7djg2eubjbsar.canadacentral-01.azurewebsites.net/'}${poster}`;
       }
       return poster;
     } catch (error) {
@@ -457,7 +457,7 @@ const CourseContent: React.FC = () => {
       setUploading(true);
       setUploadProgress(0);
       const axiosInstance = axios.create({
-        baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000',
+        baseURL: import.meta.env.VITE_API_BASE_URL || 'https://pfe-backend-hac7djg2eubjbsar.canadacentral-01.azurewebsites.net/',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`,
           'Content-Type': 'multipart/form-data'
@@ -467,13 +467,13 @@ const CourseContent: React.FC = () => {
         `/api/courses/${course._id}/documents`,
         formData,
         {
-          onUploadProgress: (progressEvent: ProgressEvent) => {
+          onUploadProgress: (progressEvent: { loaded: number; total?: number }) => {
             if (progressEvent.total) {
               const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
               setUploadProgress(percentCompleted);
             }
           }
-        } as { onUploadProgress: (progressEvent: { loaded: number; total?: number }) => void }
+        }
       );
       if (response.data.success) {
         const updatedCourse = await getCourseByTitle(title!);
@@ -549,7 +549,7 @@ const CourseContent: React.FC = () => {
       setUploading(true);
       setUploadProgress(0);
       const axiosInstance = axios.create({
-        baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000',
+        baseURL: import.meta.env.VITE_API_BASE_URL || 'https://pfe-backend-hac7djg2eubjbsar.canadacentral-01.azurewebsites.net/',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -1067,118 +1067,7 @@ const CourseContent: React.FC = () => {
                   <div className="space-y-8">
                     {isInstructor && (
                       <div className="flex justify-end">
-                        <button
-                          onClick={() => setShowDocUpload(true)}
-                          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-                        >
-                          <FaUpload className="h-4 w-4" />
-                          Ajouter un document
-                        </button>
-                      </div>
-                    )}
-                    {course.documents && course.documents.length > 0 ? (
-                      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                        <div className="p-4 bg-blue-50 border-b border-gray-200">
-                          <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-                            <FaFileAlt className="h-5 w-5 mr-2 text-blue-600" />
-                            Documents du cours ({course.documents.length})
-                          </h3>
-                        </div>
-                        <ul className="divide-y divide-gray-200">
-                          {course.documents.map((doc, index) => {
-                            let bgColor = "bg-gray-100";
-                            let textColor = "text-gray-700";
-                            let icon = <FaFileAlt className="h-5 w-5" />;
-                            if (doc.type === 'pdf') {
-                              bgColor = "bg-red-100";
-                              textColor = "text-red-700";
-                              icon = <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
-                              </svg>;
-                            } else if (doc.type === 'doc' || doc.type === 'docx') {
-                              bgColor = "bg-blue-100";
-                              textColor = "text-blue-700";
-                              icon = <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
-                              </svg>;
-                            } else if (doc.type === 'ppt' || doc.type === 'pptx') {
-                              bgColor = "bg-orange-100";
-                              textColor = "text-orange-700";
-                              icon = <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
-                              </svg>;
-                            }
-                            return (
-                              <li 
-                                key={`doc-${doc.title}-${index}`.replace(/\s+/g, '-')} 
-                                id={`doc-${index}`}
-                                className="hover:bg-gray-50 transition-colors"
-                              >
-                                <div className="p-4 flex items-center justify-between">
-                                  <div className="flex items-center space-x-4">
-                                    <div className={`w-10 h-10 rounded-lg ${bgColor} ${textColor} flex items-center justify-center flex-shrink-0`}>
-                                      {icon}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                      <h4 className="text-base font-medium text-gray-900 truncate">{doc.title}</h4>
-                                      {doc.description && (
-                                        <p className="text-sm text-gray-500 truncate">{doc.description}</p>
-                                      )}
-                                    </div>
-                                  </div>
-                                  <div className="flex items-center space-x-2">
-                                    <a
-                                      href={fixResourceUrl(doc.url)}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="inline-flex items-center justify-center bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 transition-colors"
-                                      title="Télécharger"
-                                      onClick={(e) => {
-                                        if (!doc.url) {
-                                          e.preventDefault();
-                                          toast.error('URL du document invalide');
-                                        }
-                                      }}
-                                    >
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                      </svg>
-                                    </a>
-                                    {isInstructor && (
-                                      <button
-                                        onClick={() => {
-                                          setDocumentToDelete(index);
-                                          setShowDeleteModal(true);
-                                        }}
-                                        className="text-red-500 hover:text-red-700 p-2 bg-white rounded-lg border border-gray-200 hover:bg-red-50 transition-colors"
-                                        title="Supprimer le document"
-                                      >
-                                        <FaTrash className="h-4 w-4" />
-                                      </button>
-                                    )}
-                                  </div>
-                                </div>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      </div>
-                    ) : (
-                      <div className="text-center py-16 bg-white rounded-xl border border-gray-200 shadow-sm">
-                        <div className="max-w-md mx-auto">
-                          <FaFileAlt className="mx-auto h-16 w-16 text-blue-200 mb-4" />
-                          <h3 className="text-xl font-semibold text-gray-800 mb-2">Aucun document disponible</h3>
-                          <p className="text-gray-600 mb-6">Ce cours ne contient pas encore de documents.</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </Tab.Panel>
-                <Tab.Panel>
-                  <div className="space-y-8">
-                    {isInstructor && (
-                      <div className="flex justify-end">
-                        <button
+                        <button 
                           onClick={() => setShowVideoUpload(true)}
                           className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
                         >
@@ -1303,6 +1192,117 @@ const CourseContent: React.FC = () => {
                           <FaVideo className="mx-auto h-16 w-16 text-blue-200 mb-4" />
                           <h3 className="text-xl font-semibold text-gray-800 mb-2">Aucune vidéo disponible</h3>
                           <p className="text-gray-600 mb-6">Ce cours ne contient pas encore de vidéos.</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Tab.Panel>
+                <Tab.Panel>
+                  <div className="space-y-8">
+                    {isInstructor && (
+                      <div className="flex justify-end">
+                        <button
+                          onClick={() => setShowDocUpload(true)}
+                          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                        >
+                          <FaUpload className="h-4 w-4" />
+                          Ajouter un document
+                        </button>
+                      </div>
+                    )}
+                    {course.documents && course.documents.length > 0 ? (
+                      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                        <div className="p-4 bg-blue-50 border-b border-gray-200">
+                          <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+                            <FaFileAlt className="h-5 w-5 mr-2 text-blue-600" />
+                            Documents du cours ({course.documents.length})
+                          </h3>
+                        </div>
+                        <ul className="divide-y divide-gray-200">
+                          {course.documents.map((doc, index) => {
+                            let bgColor = "bg-gray-100";
+                            let textColor = "text-gray-700";
+                            let icon = <FaFileAlt className="h-5 w-5" />;
+                            if (doc.type === 'pdf') {
+                              bgColor = "bg-red-100";
+                              textColor = "text-red-700";
+                              icon = <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                              </svg>;
+                            } else if (doc.type === 'doc' || doc.type === 'docx') {
+                              bgColor = "bg-blue-100";
+                              textColor = "text-blue-700";
+                              icon = <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                              </svg>;
+                            } else if (doc.type === 'ppt' || doc.type === 'pptx') {
+                              bgColor = "bg-orange-100";
+                              textColor = "text-orange-700";
+                              icon = <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                              </svg>;
+                            }
+                            return (
+                              <li 
+                                key={`doc-${doc.title}-${index}`.replace(/\s+/g, '-')} 
+                                id={`doc-${index}`}
+                                className="hover:bg-gray-50 transition-colors"
+                              >
+                                <div className="p-4 flex items-center justify-between">
+                                  <div className="flex items-center space-x-4">
+                                    <div className={`w-10 h-10 rounded-lg ${bgColor} ${textColor} flex items-center justify-center flex-shrink-0`}>
+                                      {icon}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <h4 className="text-base font-medium text-gray-900 truncate">{doc.title}</h4>
+                                      {doc.description && (
+                                        <p className="text-sm text-gray-500 truncate">{doc.description}</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <a
+                                      href={fixResourceUrl(doc.url)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center justify-center bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 transition-colors"
+                                      title="Télécharger"
+                                      onClick={(e) => {
+                                        if (!doc.url) {
+                                          e.preventDefault();
+                                          toast.error('URL du document invalide');
+                                        }
+                                      }}
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                      </svg>
+                                    </a>
+                                    {isInstructor && (
+                                      <button
+                                        onClick={() => {
+                                          setDocumentToDelete(index);
+                                          setShowDeleteModal(true);
+                                        }}
+                                        className="text-red-500 hover:text-red-700 p-2 bg-white rounded-lg border border-gray-200 hover:bg-red-50 transition-colors"
+                                        title="Supprimer le document"
+                                      >
+                                        <FaTrash className="h-4 w-4" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    ) : (
+                      <div className="text-center py-16 bg-white rounded-xl border border-gray-200 shadow-sm">
+                        <div className="max-w-md mx-auto">
+                          <FaFileAlt className="mx-auto h-16 w-16 text-blue-200 mb-4" />
+                          <h3 className="text-xl font-semibold text-gray-800 mb-2">Aucun document disponible</h3>
+                          <p className="text-gray-600 mb-6">Ce cours ne contient pas encore de documents.</p>
                         </div>
                       </div>
                     )}

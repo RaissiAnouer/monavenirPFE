@@ -69,6 +69,7 @@ const storage = multer.diskStorage({
     cb(null, uploadPath);
   },
   filename: function (req, file, cb) {
+    // Always use a secure random filename to avoid issues with non-ASCII characters
     const secureFilename = generateSecureFilename(file.originalname);
     cb(null, secureFilename);
   }

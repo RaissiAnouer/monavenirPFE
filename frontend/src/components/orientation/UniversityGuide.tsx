@@ -78,6 +78,53 @@ const UniversityGuide: React.FC = () => {
     setTimeout(() => setError(null), 3000);
   };
 
+  const processDownloadError = async (response: Response, pdfFilename: string) => {
+    let errorMessage = 'Erreur lors du téléchargement du fichier';
+    try {
+      const errorData = await response.json();
+      errorMessage = errorData.message || errorMessage;
+      if (errorData.details) {
+        errorMessage += `: ${errorData.details}`;
+      }
+    } catch (e) {
+      if (response.status === 404) {
+        errorMessage = `Le fichier "${pdfFilename}" n'est pas disponible sur le serveur. Veuillez contacter l'administrateur.`;
+      } else {
+        errorMessage = `Erreur ${response.status}: ${response.statusText || 'Problème de téléchargement'}`;
+      }
+    }
+    return new Error(errorMessage);
+  };
+
+  const validatePdfResponse = (response: Response) => {
+    const contentType = response.headers.get('Content-Type');
+    if (!contentType || !contentType.includes('application/pdf')) {
+      throw new Error('Le serveur n\'a pas retourné un fichier PDF valide');
+    }
+  };
+
+  const downloadPdfFile = async (baseUrl: string, filename: string, authToken: string) => {
+    const response = await fetch(`${baseUrl}/api/pdf/${encodeURIComponent(filename)}`, {
+      headers: {
+        'Authorization': `Bearer ${authToken}`,
+        'Accept': 'application/pdf'
+      }
+    });
+    
+    if (!response.ok) {
+      throw await processDownloadError(response, filename);
+    }
+    
+    validatePdfResponse(response);
+    const blob = await response.blob();
+    
+    if (blob.size === 0) {
+      throw new Error('Le fichier téléchargé est vide');
+    }
+    
+    return blob;
+  };
+
   const handlePdfDownload = async (pdf: PDFFile) => {
     if (!authToken) {
       setError('Veuillez vous connecter pour télécharger les guides');
@@ -88,55 +135,10 @@ const UniversityGuide: React.FC = () => {
     setError(null);
     
     const baseUrl = import.meta.env.VITE_API_URL || 'https://pfe-backend-hac7djg2eubjbsar.canadacentral-01.azurewebsites.net';
-
-    const processDownloadError = async (response: Response, pdfFilename: string) => {
-      let errorMessage = 'Erreur lors du téléchargement du fichier';
-      try {
-        const errorData = await response.json();
-        errorMessage = errorData.message || errorMessage;
-        if (errorData.details) {
-          errorMessage += `: ${errorData.details}`;
-        }
-      } catch (e) {
-        if (response.status === 404) {
-          errorMessage = `Le fichier "${pdfFilename}" n'est pas disponible sur le serveur. Veuillez contacter l'administrateur.`;
-        } else {
-          errorMessage = `Erreur ${response.status}: ${response.statusText || 'Problème de téléchargement'}`;
-        }
-      }
-      return new Error(errorMessage);
-    };
     
     try {
-      // Try to download the file directly without checking first
-      const response = await fetch(`${baseUrl}/api/pdf/${encodeURIComponent(pdf.filename)}`, {
-        headers: {
-          'Authorization': `Bearer ${authToken}`,
-          'Accept': 'application/pdf'
-        }
-      });
-      
-      if (!response.ok) {
-        throw await processDownloadError(response, pdf.filename);
-      }
-      
-      // Check if the response is actually a PDF
-      const contentType = response.headers.get('Content-Type');
-      if (!contentType || !contentType.includes('application/pdf')) {
-        throw new Error('Le serveur n\'a pas retourné un fichier PDF valide');
-      }
-      
-      // Get the blob from the response
-      const blob = await response.blob();
-      
-      // Verify the blob is not empty
-      if (blob.size === 0) {
-        throw new Error('Le fichier téléchargé est vide');
-      }
-      
-      // Create a URL for the blob and trigger download
+      const blob = await downloadPdfFile(baseUrl, pdf.filename, authToken);
       initiateBrowserDownload(blob, pdf.filename, pdf.title, setError);
-      
     } catch (err) {
       console.error('Download error:', err);
       setError(err instanceof Error ? err.message : 'Erreur inconnue lors du téléchargement');

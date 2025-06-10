@@ -6,6 +6,7 @@ const multer = require('multer');
 const path = require('path');
 const mongoose = require('mongoose');
 const fs = require('fs');
+const { generateSecureFilename } = require('../utils/secureFilename');
 
 // Ensure upload directories exist
 const ensureDirectoryExists = (directory) => {
@@ -50,8 +51,9 @@ const storage = multer.diskStorage({
     cb(null, uploadPath);
   },
   filename: function (req, file, cb) {
-    // Use the filename sent by the frontend (which should be unique)
-    cb(null, file.originalname);
+    // Use a secure random filename for all uploads handled by this storage
+    const secureFilename = generateSecureFilename(file.originalname);
+    cb(null, secureFilename);
   }
 });
 
@@ -121,9 +123,9 @@ const documentStorage = multer.diskStorage({
     cb(null, uploadPath);
   },
   filename: function (req, file, cb) {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1e9);
-    const ext = path.extname(file.originalname);
-    cb(null, file.fieldname + '-' + uniqueSuffix + ext);
+    // Use a secure random filename for document uploads as well
+    const secureFilename = generateSecureFilename(file.originalname);
+    cb(null, secureFilename);
   }
 });
 
