@@ -9,6 +9,9 @@ vi.mock('react-router-dom', () => ({
   BrowserRouter: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   Routes: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
   Route: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+  useLocation: () => ({ pathname: '/' }),
+  useNavigate: () => vi.fn(),
+  Link: ({ children, to }: { children: React.ReactNode, to: string }) => <a href={to}>{children}</a>,
 }));
 
 describe('App Component', () => {
