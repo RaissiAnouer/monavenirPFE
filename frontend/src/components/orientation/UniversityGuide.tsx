@@ -3,13 +3,11 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   DocumentTextIcon,
   MagnifyingGlassIcon,
-  ArrowsPointingOutIcon,
   ExclamationCircleIcon,
   Squares2X2Icon,
   ListBulletIcon,
   CheckCircleIcon
 } from '@heroicons/react/24/outline';
-import PDFViewer from './PDFViewer';
 
 interface PDFFile {
   id: string;
@@ -42,7 +40,6 @@ const pdfFiles: PDFFile[] = [
 const UniversityGuide: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'recent' | 'title'>('recent');
-  const [selectedPdf, setSelectedPdf] = useState<PDFFile | null>(null);
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -53,11 +50,6 @@ const UniversityGuide: React.FC = () => {
     const token = localStorage.getItem('token');
     setAuthToken(token);
   }, []);
-
-  const getPdfUrl = (filename: string) => {
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
-    return `${baseUrl}/api/pdf/${encodeURIComponent(filename)}`;
-  };
 
   const filteredPdfs = pdfFiles
     .filter(pdf => 
@@ -80,7 +72,25 @@ const UniversityGuide: React.FC = () => {
     setLoading(prev => ({ ...prev, [pdf.id]: true }));
     setError(null);
     
-    const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+    const baseUrl = import.meta.env.VITE_API_URL || 'https://pfe-backend-hac7djg2eubjbsar.canadacentral-01.azurewebsites.net';
+
+    const processDownloadError = async (response: Response, pdfFilename: string) => {
+      let errorMessage = 'Erreur lors du téléchargement du fichier';
+      try {
+        const errorData = await response.json();
+        errorMessage = errorData.message || errorMessage;
+        if (errorData.details) {
+          errorMessage += `: ${errorData.details}`;
+        }
+      } catch (e) {
+        if (response.status === 404) {
+          errorMessage = `Le fichier "${pdfFilename}" n'est pas disponible sur le serveur. Veuillez contacter l'administrateur.`;
+        } else {
+          errorMessage = `Erreur ${response.status}: ${response.statusText || 'Problème de téléchargement'}`;
+        }
+      }
+      return new Error(errorMessage);
+    };
     
     try {
       // Try to download the file directly without checking first
@@ -92,23 +102,7 @@ const UniversityGuide: React.FC = () => {
       });
       
       if (!response.ok) {
-        let errorMessage = 'Erreur lors du téléchargement du fichier';
-        
-        try {
-          const errorData = await response.json();
-          errorMessage = errorData.message || errorMessage;
-          if (errorData.details) {
-            errorMessage += `: ${errorData.details}`;
-          }
-        } catch (e) {
-          if (response.status === 404) {
-            errorMessage = `Le fichier "${pdf.filename}" n'est pas disponible sur le serveur. Veuillez contacter l'administrateur.`;
-          } else {
-            errorMessage = `Erreur ${response.status}: ${response.statusText || 'Problème de téléchargement'}`;
-          }
-        }
-        
-        throw new Error(errorMessage);
+        throw await processDownloadError(response, pdf.filename);
       }
       
       // Check if the response is actually a PDF

@@ -158,6 +158,22 @@ const ScoreCalculator = () => {
     return "text-red-600";
   };
 
+  const getButtonClasses = (isSelected: boolean, color: string) => {
+    if (isSelected) {
+      return `bg-${color}-50 border border-${color}-200 shadow-sm`;
+    } else {
+      return 'bg-gray-50 hover:bg-gray-100 border border-transparent';
+    }
+  };
+
+  const getTextColorClasses = (isSelected: boolean, color: string) => {
+    if (isSelected) {
+      return `text-${color}-700`;
+    } else {
+      return 'text-gray-700';
+    }
+  };
+
   return (
     <div className="max-w-5xl mx-auto">
       {/* Header Section */}
@@ -202,13 +218,11 @@ const ScoreCalculator = () => {
                   whileTap={{ scale: 0.98 }}
                   onClick={() => setSelectedSection(key as Section)}
                   className={`w-full p-3 rounded-lg text-left transition-all duration-200 flex items-center
-                    ${selectedSection === key 
-                      ? `bg-${formula.color}-50 border border-${formula.color}-200 shadow-sm` 
-                      : 'bg-gray-50 hover:bg-gray-100 border border-transparent'}`}
+                    ${getButtonClasses(selectedSection === key, formula.color)}`}
                 >
                   <span className="text-2xl mr-3 flex-shrink-0">{formula.icon}</span>
                   <div>
-                    <span className={`block font-medium ${selectedSection === key ? `text-${formula.color}-700` : 'text-gray-700'}`}>
+                    <span className={`block font-medium ${getTextColorClasses(selectedSection === key, formula.color)}`}>
                       {formula.name}
                     </span>
                     <span className="text-xs text-gray-500 block mt-0.5">

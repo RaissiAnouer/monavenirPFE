@@ -34,15 +34,9 @@ const questions: Question[] = [
 
 const OrientationTest = () => {
   const [currentQuestion, setCurrentQuestion] = useState(0);
-  const [answers, setAnswers] = useState<{[key: number]: string}>({});
   const [showResult, setShowResult] = useState(false);
 
   const handleAnswer = (answer: string) => {
-    setAnswers(prev => ({
-      ...prev,
-      [questions[currentQuestion].id]: answer
-    }));
-
     if (currentQuestion < questions.length - 1) {
       setCurrentQuestion(prev => prev + 1);
     } else {
@@ -52,7 +46,6 @@ const OrientationTest = () => {
 
   const resetTest = () => {
     setCurrentQuestion(0);
-    setAnswers({});
     setShowResult(false);
   };
 
@@ -86,9 +79,9 @@ const OrientationTest = () => {
       <Card className="p-6">
         <h3 className="text-xl font-bold mb-6">{questions[currentQuestion].text}</h3>
         <div className="space-y-4">
-          {questions[currentQuestion].options.map((option, index) => (
+          {questions[currentQuestion].options.map((option) => (
             <button
-              key={index}
+              key={option}
               onClick={() => handleAnswer(option)}
               className="w-full text-left p-4 rounded-lg border hover:bg-gray-50 transition-colors"
             >

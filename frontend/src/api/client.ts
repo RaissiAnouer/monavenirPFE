@@ -21,51 +21,118 @@ const onTokenRefreshed = (token: string) => {
 // Create axios instance
 const client = axios.create({
   baseURL: import.meta.env.DEV 
-    ? 'http://localhost:5000'  // Local development
-    : 'https://pfe-backend-hac7djg2eubjbsar.canadacentral-01.azurewebsites.net', // Production
+    ? 'http://localhost:5000'
+    : 'https://pfe-backend-hac7djg2eubjbsar.canadacentral-01.azurewebsites.net',
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
     'Accept': 'application/json',
   },
-  timeout: 10000, // Increase timeout to 10 seconds
+  timeout: 10000,
 });
 
 // Add retry logic
-client.interceptors.response.use(undefined, async (err) => {
-  const { config } = err;
-  if (!config || !config.retry) {
-    return Promise.reject(err);
+client.interceptors.response.use(
+  (response) => response, // Fix: Provide a fulfilled function that returns the response unchanged
+  async (err) => {
+    const { config } = err;
+    if (!config || !config.retry) {
+      return Promise.reject(err);
+    }
+    config.retry -= 1;
+    const delayRetry = new Promise(resolve => {
+      setTimeout(resolve, config.retryDelay || 1000);
+    });
+    await delayRetry;
+    return client(config);
   }
-  config.retry -= 1;
-  const delayRetry = new Promise(resolve => {
-    setTimeout(resolve, config.retryDelay || 1000);
-  });
-  await delayRetry;
-  return client(config);
-});
+);
 
 // Request interceptor to attach JWT token
-client.interceptors.request.use((config) => {
-  const token = localStorage.getItem('token');
-  if (token && config.headers) {
-    config.headers.Authorization = `Bearer ${token}`;
-    if (import.meta.env.DEV) {
-      console.log('Auth token attached to request');
+client.interceptors.request.use(
+  (config) => {
+    const token = localStorage.getItem('token');
+    if (token && config.headers) {
+      config.headers.Authorization = `Bearer ${token}`;
+      if (import.meta.env.DEV) {
+        console.log('Auth token attached to request');
+      }
     }
+    
+    if (import.meta.env.DEV) {
+      console.log(`${config.method?.toUpperCase()} request to ${config.url}`);
+    }
+    
+    return config;
+  }, 
+  (error) => {
+    console.error('Request interceptor error:', error);
+    return Promise.reject(error);
   }
-  
-  if (import.meta.env.DEV) {
-    console.log(`${config.method?.toUpperCase()} request to ${config.url}`);
-  }
-  
-  return config;
-}, (error) => {
-  console.error('Request interceptor error:', error);
-  return Promise.reject(error);
-});
+);
 
-// Response interceptor to handle unauthorized responses and token refresh
+// Handle token refresh logic
+const handleTokenRefresh = async (originalRequest: any) => {
+  if (isRefreshing) {
+    const newToken = await new Promise<string>(resolve => {
+      subscribeTokenRefresh(token => resolve(token));
+    });
+    if (originalRequest.headers) {
+      originalRequest.headers.Authorization = `Bearer ${newToken}`;
+    }
+    return axios(originalRequest);
+  }
+
+  isRefreshing = true;
+  originalRequest._retry = true;
+
+  try {
+    const response = await axios.post(
+      `${client.defaults.baseURL}/api/auth/refresh-token`,
+      {},
+      { withCredentials: true }
+    );
+    const { token } = response.data as { token: string };
+    localStorage.setItem('token', token);
+    onTokenRefreshed(token);
+    isRefreshing = false;
+    if (originalRequest.headers) {
+      originalRequest.headers.Authorization = `Bearer ${token}`;
+    }
+    return axios(originalRequest);
+  } catch (refreshError) {
+    console.error('Token refresh failed:', refreshError);
+    isRefreshing = false;
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    window.location.href = '/login?session=expired';
+    throw refreshError;
+  }
+};
+
+// Handle unauthorized responses
+const handleUnauthorized = () => {
+  console.log('Unauthorized access detected, redirecting to login');
+  localStorage.removeItem('token');
+  localStorage.removeItem('user');
+  window.location.href = '/login';
+};
+
+// Handle API errors
+const handleApiError = (error: any) => {
+  if (error.response) {
+    console.error('API Error:', error.response.status, error.response.data || error.message);
+    if (error.response.status === 429) {
+      console.error('Rate limit exceeded');
+    }
+  } else if (error.request) {
+    console.error('No response received:', error.request);
+  } else {
+    console.error('Error setting up request:', error.message);
+  }
+};
+
+// Response interceptor
 client.interceptors.response.use(
   (response) => {
     if (import.meta.env.DEV) {
@@ -75,80 +142,22 @@ client.interceptors.response.use(
   },
   async (error) => {
     const originalRequest = error.config;
-    
-    if (error.response) {
-      if (error.response.status === 401 && 
-          error.response.data && 
-          error.response.data.code === 'TOKEN_EXPIRED' && 
-          !originalRequest._retry) {
-        
-        if (isRefreshing) {
-          try {
-            const newToken = await new Promise<string>((resolve) => {
-              subscribeTokenRefresh((token: string) => {
-                resolve(token);
-              });
-            });
-            
-            if (originalRequest.headers) {
-              originalRequest.headers.Authorization = `Bearer ${newToken}`;
-            }
-            return axios(originalRequest);
-          } catch (refreshError) {
-            console.error('Error waiting for token refresh:', refreshError);
-            return Promise.reject(refreshError);
-          }
-        }
-        
-        isRefreshing = true;
-        originalRequest._retry = true;
-        
-        try {
-          const response = await axios.post(
-            `${client.defaults.baseURL}/api/auth/refresh-token`,
-            {},
-            { withCredentials: true }
-          );
-          
-          const { token } = response.data as { token: string };
-          localStorage.setItem('token', token);
-          
-          onTokenRefreshed(token);
-          
-          isRefreshing = false;
-          
-          if (originalRequest.headers) {
-            originalRequest.headers.Authorization = `Bearer ${token}`;
-          }
-          return axios(originalRequest);
-        } catch (refreshError) {
-          console.error('Token refresh failed:', refreshError);
-          isRefreshing = false;
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          window.location.href = '/login?session=expired';
-          return Promise.reject(refreshError);
-        }
+
+    if (error.response?.status === 401 && 
+        error.response.data?.code === 'TOKEN_EXPIRED' && 
+        !originalRequest._retry) {
+      try {
+        return await handleTokenRefresh(originalRequest);
+      } catch (refreshError) {
+        return Promise.reject(refreshError);
       }
-      
-      if (error.response.status === 401) {
-        console.log('Unauthorized access detected, redirecting to login');
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
-      }
-      
-      console.error('API Error:', error.response.status, error.response.data || error.message);
-    } else if (error.request) {
-      console.error('No response received:', error.request);
-    } else {
-      console.error('Error setting up request:', error.message);
     }
-    
-    if (error.response?.status === 429) {
-      console.error('Rate limit exceeded');
+
+    if (error.response?.status === 401) {
+      handleUnauthorized();
     }
-    
+
+    handleApiError(error);
     return Promise.reject(error);
   }
 );

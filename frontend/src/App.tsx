@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import AppRoutes from './routes/AppRoutes';
 import Header from './components/layout/Header';
@@ -12,8 +12,6 @@ import ResetPassword from './pages/ResetPassword';
 
 
 const App = () => {
-  const [isModalOpen, setIsModalOpen] = useState(false); // State for modal visibility
-
   return (
     <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>

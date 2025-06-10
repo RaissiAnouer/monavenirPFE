@@ -1,5 +1,4 @@
 import client from './client';
-import axios from 'axios';
 
 interface LoginResponse {
   token: string;
@@ -147,7 +146,7 @@ export const authAPI = {
 
   resendVerificationEmail: async (email: string): Promise<{ message: string }> => {
     try {
-      const response = await client.post('/api/email/send-verification', { email });
+      const response = await client.post<{ message: string }>('/api/email/send-verification', { email });
       return response.data;
     } catch (error: any) {
       console.error('Resend verification email error:', error);

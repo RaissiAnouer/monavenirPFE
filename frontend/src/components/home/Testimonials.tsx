@@ -28,8 +28,8 @@ const Testimonials = () => {
         </div>
         <div className="mx-auto mt-16 flow-root max-w-2xl sm:mt-20 lg:mx-0 lg:max-w-none">
           <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-3">
-            {testimonials.map((testimonial, index) => (
-              <div key={index} className="bg-white p-8 rounded-2xl shadow-lg">
+            {testimonials.map((testimonial) => (
+              <div key={testimonial.content} className="bg-white p-8 rounded-2xl shadow-lg">
                 <blockquote className="text-gray-700">
                   "{testimonial.content}"
                 </blockquote>

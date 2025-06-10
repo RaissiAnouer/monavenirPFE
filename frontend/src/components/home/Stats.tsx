@@ -39,6 +39,21 @@ const stats = [
 ];
 
 const Stats = () => {
+  const getStatColorClasses = (color: string) => {
+    switch (color) {
+      case 'blue':
+        return 'bg-blue-100 text-blue-600';
+      case 'green':
+        return 'bg-green-100 text-green-600';
+      case 'yellow':
+        return 'bg-yellow-100 text-yellow-600';
+      case 'purple':
+        return 'bg-purple-100 text-purple-600';
+      default:
+        return '';
+    }
+  };
+
   return (
     <section className="py-12 bg-gray-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -53,12 +68,7 @@ const Stats = () => {
               className="relative group px-6 py-8 bg-white rounded-2xl shadow-sm hover:shadow-md 
                 transition-all duration-200"
             >
-              <div className={`inline-flex p-3 rounded-lg ${
-                stat.color === 'blue' ? 'bg-blue-100 text-blue-600' :
-                stat.color === 'green' ? 'bg-green-100 text-green-600' :
-                stat.color === 'yellow' ? 'bg-yellow-100 text-yellow-600' :
-                'bg-purple-100 text-purple-600'
-              }`}>
+              <div className={`inline-flex p-3 rounded-lg ${getStatColorClasses(stat.color)}`}>
                 <stat.icon className="h-6 w-6" />
               </div>
               <p className="mt-4 text-2xl font-bold text-gray-900">{stat.value}</p>

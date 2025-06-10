@@ -4,13 +4,7 @@ import {
   AcademicCapIcon,
   UserGroupIcon,
   LightBulbIcon,
-  RocketLaunchIcon,
-  ClipboardDocumentCheckIcon,
   ArrowRightIcon,
-  BookOpenIcon,
-  ClockIcon,
-  DevicePhoneMobileIcon,
-  GlobeAltIcon
 } from '@heroicons/react/24/outline';
 import { Link } from 'react-router-dom';
 
@@ -48,6 +42,16 @@ const colors = {
 };
 
 const Services = () => {
+  const getServiceColorClasses = (color: string) => {
+    if (color === 'yellow') {
+      return 'bg-yellow-100 text-yellow-600';
+    } else if (color === 'green') {
+      return 'bg-green-100 text-green-600';
+    } else {
+      return 'bg-blue-100 text-blue-600';
+    }
+  };
+
   return (
     <section className="py-20 bg-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -73,11 +77,7 @@ const Services = () => {
               <div className="absolute inset-0 rounded-2xl bg-white shadow-lg transform 
                 transition-transform group-hover:-translate-y-2" />
               <div className="relative p-8 rounded-2xl bg-white">
-                <div className={`inline-flex p-3 rounded-lg ${
-                  service.color === 'yellow' ? 'bg-yellow-100 text-yellow-600' :
-                  service.color === 'green' ? 'bg-green-100 text-green-600' :
-                  'bg-blue-100 text-blue-600'
-                }`}>
+                <div className={`inline-flex p-3 rounded-lg ${getServiceColorClasses(service.color)}`}>
                   <service.icon className="h-6 w-6" />
                 </div>
                 <h3 className="mt-4 text-xl font-semibold text-gray-900">

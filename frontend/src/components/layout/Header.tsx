@@ -4,11 +4,6 @@ import {
   AcademicCapIcon, 
   Bars3Icon, 
   XMarkIcon,
-  UserIcon,
-  HomeIcon,
-  BookOpenIcon,
-  InformationCircleIcon,
-  PhoneIcon,
   UserCircleIcon,
   ChevronDownIcon
 } from '@heroicons/react/24/outline';

@@ -77,12 +77,12 @@ const InteractiveTest: React.FC = () => {
           
           {/* Features Grid */}
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-            {features.map((feature, index) => (
+            {features.map((feature) => (
               <motion.div 
-                key={index}
+                key={feature.title}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: 0.1 * index }}
+                transition={{ duration: 0.5 }}
                 className="bg-white rounded-lg p-6 shadow-sm hover:shadow-md transition-shadow"
               >
                 <div className="flex items-start">

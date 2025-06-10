@@ -1,6 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Document, Page, pdfjs } from 'react-pdf';
-import { motion, AnimatePresence } from 'framer-motion';
 import {
   XMarkIcon,
   ChevronLeftIcon,
