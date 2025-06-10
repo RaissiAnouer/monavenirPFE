@@ -1,3 +1,4 @@
+
 ---
 - name: Deploy Docker Compose services on Azure VM
   hosts: azure_vm
