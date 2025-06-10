@@ -63,6 +63,21 @@ const UniversityGuide: React.FC = () => {
       return a.title.localeCompare(b.title);
     });
 
+  const initiateBrowserDownload = (blob: Blob, filename: string, title: string, setError: React.Dispatch<React.SetStateAction<string | null>>) => {
+    const url = window.URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    document.body.appendChild(link);
+    link.click();
+    
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    
+    setError(`Téléchargement de "${title}" réussi!`);
+    setTimeout(() => setError(null), 3000);
+  };
+
   const handlePdfDownload = async (pdf: PDFFile) => {
     if (!authToken) {
       setError('Veuillez vous connecter pour télécharger les guides');
@@ -120,20 +135,7 @@ const UniversityGuide: React.FC = () => {
       }
       
       // Create a URL for the blob and trigger download
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = pdf.filename;
-      document.body.appendChild(link);
-      link.click();
-      
-      // Clean up
-      document.body.removeChild(link);
-      window.URL.revokeObjectURL(url);
-      
-      // Show success message
-      setError(`Téléchargement de "${pdf.title}" réussi!`);
-      setTimeout(() => setError(null), 3000);
+      initiateBrowserDownload(blob, pdf.filename, pdf.title, setError);
       
     } catch (err) {
       console.error('Download error:', err);

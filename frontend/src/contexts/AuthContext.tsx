@@ -2,7 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import { authAPI } from '../api/auth';
 import { User } from '../types/user';
 import { toast } from 'react-hot-toast';
-import axios from 'axios';
+
 
 interface AuthContextType {
   user: User | null;

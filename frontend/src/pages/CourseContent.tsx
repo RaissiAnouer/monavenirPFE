@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef, useMemo } from 'react';
 import { useParams } from 'react-router-dom';
-import { getCourseByTitle, addCourseVideo, addCourseDocument, removeCourseVideo, removeCourseDocument } from '../api/courseApi';
+import { getCourseByTitle, addCourseDocument, removeCourseVideo, removeCourseDocument } from '../api/courseApi';
 import { Course } from '../types/course';
 import Loader from '../components/Loader';
 import { Tab } from '@headlessui/react';
@@ -10,25 +10,20 @@ import { useForm } from 'react-hook-form';
 import { toast } from 'react-hot-toast';
 import { fixResourceUrl } from '../utils/imageUtils';
 import axios from 'axios';
-import { AxiosRequestConfig } from 'axios';
 
-// Add custom scrollbar styles
+// Custom scrollbar styles
 const scrollbarStyles = `
-  /* Custom scrollbar styles */
   .custom-scrollbar::-webkit-scrollbar {
     width: 6px;
   }
-  
   .custom-scrollbar::-webkit-scrollbar-track {
     background: #f1f1f1;
     border-radius: 10px;
   }
-  
   .custom-scrollbar::-webkit-scrollbar-thumb {
     background: #d1d5db;
     border-radius: 10px;
   }
-  
   .custom-scrollbar::-webkit-scrollbar-thumb:hover {
     background: #3b82f6;
   }
@@ -46,35 +41,25 @@ const VideoPlayer: React.FC<{ src: string; poster?: string }> = ({ src, poster }
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
-  const [isFullscreen, setIsFullscreen] = useState(false);
   const [showControls, setShowControls] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [errorDetails, setErrorDetails] = useState<string>('');
   const [isLoading, setIsLoading] = useState(true);
   const controlsTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Fix the source URL if needed
   const fixedSrc = useMemo(() => {
     try {
       if (!src) return '';
-      
-      // If the URL starts with /uploads/videos/
       if (src.startsWith('/uploads/videos/')) {
-        // Extract the filename from the path
         const filename = src.split('/').pop();
-        // Use the streaming route instead of direct file access
         if (filename) {
-          // Include the token in the URL as a query parameter
           const token = localStorage.getItem('token');
           const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-          // Add timestamp to prevent caching issues
           return `${baseUrl}/api/stream/${filename}?token=${token}&t=${Date.now()}`;
         }
       } else if (src.startsWith('/uploads')) {
-        // Include the token in the URL as a query parameter
         const token = localStorage.getItem('token');
         const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000';
-        // Add timestamp to prevent caching issues
         return `${baseUrl}${src}?token=${token}&t=${Date.now()}`;
       }
       return src;
@@ -86,33 +71,21 @@ const VideoPlayer: React.FC<{ src: string; poster?: string }> = ({ src, poster }
     }
   }, [src]);
 
-  // Direct access URL for fallback
-
-  // Set up video element with proper authentication
   useEffect(() => {
     if (videoRef.current && fixedSrc) {
       setIsLoading(true);
       setHasError(false);
-      
-      // Reset video element
       videoRef.current.pause();
       videoRef.current.removeAttribute('src');
       videoRef.current.load();
-      
-      // Set new source
       videoRef.current.src = fixedSrc;
-      
-      // Set video attributes
       videoRef.current.preload = 'metadata';
       videoRef.current.crossOrigin = 'anonymous';
       videoRef.current.playsInline = true;
-      
-      // Load video
       videoRef.current.load();
     }
   }, [fixedSrc]);
 
-  // Handle video metadata loaded
   const handleMetadataLoaded = () => {
     if (videoRef.current) {
       console.log('Video metadata loaded:', {
@@ -127,21 +100,18 @@ const VideoPlayer: React.FC<{ src: string; poster?: string }> = ({ src, poster }
     }
   };
 
-  // Handle time update
   const handleTimeUpdate = () => {
     if (videoRef.current) {
       setCurrentTime(videoRef.current.currentTime);
     }
   };
 
-  // Handle video can play
   const handleCanPlay = () => {
     console.log('Video can play');
     setIsLoading(false);
     setHasError(false);
   };
 
-  // Handle video error
   const handleVideoError = (e: React.SyntheticEvent<HTMLVideoElement, Event>) => {
     const videoElement = e.currentTarget;
     const error = videoElement.error;
@@ -166,44 +136,31 @@ const VideoPlayer: React.FC<{ src: string; poster?: string }> = ({ src, poster }
     }
   };
 
-  // Check if the video source is valid
   useEffect(() => {
-    // Reset error state when source changes
     setHasError(false);
     setErrorDetails('');
-    
-    // Validate the source URL
     if (!src) {
       setHasError(true);
       setErrorDetails('No video source provided');
     } else if (fixedSrc) {
-      // Test if the URL is accessible
       const testImage = new Image();
       testImage.onload = () => {
-        // If it's an image URL, it's probably not a valid video
         setHasError(true);
         setErrorDetails('Invalid video format');
       };
-      testImage.onerror = () => {
-        // This is expected for video URLs - they won't load as images
-        // We don't set an error here
-      };
-      
-      // Only test if it looks like a URL
+      testImage.onerror = () => {};
       if (fixedSrc.startsWith('http') || fixedSrc.startsWith('/')) {
         testImage.src = fixedSrc;
       }
     }
   }, [src, fixedSrc]);
 
-  // Format time (seconds) to MM:SS
   const formatTime = (time: number) => {
     const minutes = Math.floor(time / 60);
     const seconds = Math.floor(time % 60);
     return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
   };
 
-  // Toggle play/pause
   const togglePlay = () => {
     if (videoRef.current && !hasError) {
       if (isPlaying) {
@@ -219,7 +176,6 @@ const VideoPlayer: React.FC<{ src: string; poster?: string }> = ({ src, poster }
     }
   };
 
-  // Handle seek
   const handleSeek = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (videoRef.current && !hasError) {
       const newTime = parseFloat(e.target.value);
@@ -228,7 +184,6 @@ const VideoPlayer: React.FC<{ src: string; poster?: string }> = ({ src, poster }
     }
   };
 
-  // Handle volume change
   const handleVolumeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (videoRef.current && !hasError) {
       const newVolume = parseFloat(e.target.value);
@@ -238,7 +193,6 @@ const VideoPlayer: React.FC<{ src: string; poster?: string }> = ({ src, poster }
     }
   };
 
-  // Toggle mute
   const toggleMute = () => {
     if (videoRef.current && !hasError) {
       videoRef.current.muted = !isMuted;
@@ -246,7 +200,6 @@ const VideoPlayer: React.FC<{ src: string; poster?: string }> = ({ src, poster }
     }
   };
 
-  // Toggle fullscreen
   const toggleFullscreen = () => {
     if (videoRef.current && !hasError) {
       if (!document.fullscreenElement) {
@@ -259,14 +212,11 @@ const VideoPlayer: React.FC<{ src: string; poster?: string }> = ({ src, poster }
     }
   };
 
-  // Show/hide controls on mouse movement
   const handleMouseMove = () => {
     setShowControls(true);
-    
     if (controlsTimeoutRef.current) {
       clearTimeout(controlsTimeoutRef.current);
     }
-    
     controlsTimeoutRef.current = setTimeout(() => {
       if (isPlaying && !hasError) {
         setShowControls(false);
@@ -274,7 +224,6 @@ const VideoPlayer: React.FC<{ src: string; poster?: string }> = ({ src, poster }
     }, 3000);
   };
 
-  // Clean up timeout on unmount
   useEffect(() => {
     return () => {
       if (controlsTimeoutRef.current) {
@@ -283,7 +232,6 @@ const VideoPlayer: React.FC<{ src: string; poster?: string }> = ({ src, poster }
     };
   }, []);
 
-  // Fix the poster URL if needed
   const fixedPoster = useMemo(() => {
     try {
       if (poster && poster.startsWith('/uploads')) {
@@ -296,9 +244,6 @@ const VideoPlayer: React.FC<{ src: string; poster?: string }> = ({ src, poster }
     }
   }, [poster]);
 
-  // Try direct file access if streaming fails
-
-
   const handleVideoLoad = async (videoUrl: string) => {
     try {
       const response = await fetch(videoUrl, {
@@ -307,11 +252,9 @@ const VideoPlayer: React.FC<{ src: string; poster?: string }> = ({ src, poster }
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
-
       if (!response.ok) {
         throw new Error(`Failed to load video: ${response.statusText}`);
       }
-
       console.log('Video source is accessible:', response.status, response.statusText);
     } catch (error) {
       console.error('Video loading error:', error);
@@ -385,25 +328,22 @@ const VideoPlayer: React.FC<{ src: string; poster?: string }> = ({ src, poster }
             Your browser does not support the video tag.
           </video>
           
-          {/* Play/Pause Overlay Button (center) */}
-          {!isPlaying && (
             <div className="absolute inset-0 flex items-center justify-center">
+            {!isPlaying && (
               <button 
                 onClick={togglePlay}
                 className="bg-blue-600/80 hover:bg-blue-700/80 text-white rounded-full p-6 transform transition-transform hover:scale-110 shadow-lg backdrop-blur-sm"
               >
                 <FaPlay className="h-8 w-8" />
               </button>
-            </div>
           )}
+          </div>
           
-          {/* Video Controls */}
           <div 
             className={`absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent px-4 py-3 transition-opacity duration-300 ${
               showControls ? 'opacity-100' : 'opacity-0'
             }`}
           >
-            {/* Progress Bar */}
             <div className="flex items-center mb-2">
               <input
                 type="range"
@@ -418,16 +358,11 @@ const VideoPlayer: React.FC<{ src: string; poster?: string }> = ({ src, poster }
                 }}
               />
             </div>
-            
-            {/* Controls Row */}
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-4">
-                {/* Play/Pause Button */}
                 <button onClick={togglePlay} className="text-white hover:text-blue-400 transition-colors">
                   {isPlaying ? <FaPause className="h-4 w-4" /> : <FaPlay className="h-4 w-4" />}
                 </button>
-                
-                {/* Volume Control */}
                 <div className="flex items-center space-x-2">
                   <button onClick={toggleMute} className="text-white hover:text-blue-400 transition-colors">
                     {isMuted ? <FaVolumeMute className="h-4 w-4" /> : <FaVolumeUp className="h-4 w-4" />}
@@ -446,14 +381,10 @@ const VideoPlayer: React.FC<{ src: string; poster?: string }> = ({ src, poster }
                     }}
                   />
                 </div>
-                
-                {/* Time Display */}
                 <div className="text-white text-xs font-medium">
                   {formatTime(currentTime)} / {formatTime(duration)}
                 </div>
               </div>
-              
-              {/* Fullscreen Button */}
               <button onClick={toggleFullscreen} className="text-white hover:text-blue-400 transition-colors">
                 <FaExpand className="h-4 w-4" />
               </button>
@@ -464,11 +395,6 @@ const VideoPlayer: React.FC<{ src: string; poster?: string }> = ({ src, poster }
     </div>
   );
 };
-
-// Extend AxiosRequestConfig to include onUploadProgress
-interface CustomAxiosRequestConfig extends AxiosRequestConfig {
-  onUploadProgress?: (progressEvent: ProgressEvent) => void;
-}
 
 const CourseContent: React.FC = () => {
   const { title } = useParams<{ title: string }>();
@@ -484,21 +410,11 @@ const CourseContent: React.FC = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [user, setUser] = useState<any>(null);
-  const [documentPreview, setDocumentPreview] = useState<string | null>(null);
   const [documentName, setDocumentName] = useState<string | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
   const [videoName, setVideoName] = useState<string | null>(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [documentToDelete, setDocumentToDelete] = useState<number | null>(null);
-
-  // Define the function to handle document input changes
-  const handleDocumentChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      const file = e.target.files[0];
-      console.log('Selected document:', file.name);
-      // You can add more logic here, such as updating state or preparing the file for upload
-    }
-  };
 
   useEffect(() => {
     const userData = localStorage.getItem('user');
@@ -517,23 +433,19 @@ const CourseContent: React.FC = () => {
         setLoading(false);
       }
     };
-
     fetchCourse();
   }, [title]);
 
   const isInstructor = user && (user.role === 'teacher' || user.role === 'admin') && 
     course?.instructor === user.name;
 
-  // Define the expected response type
   interface DocumentUploadResponse {
     success: boolean;
-    course: Course; // Assuming you have a Course type defined
+    course: Course;
   }
 
-  // Update the handleDocUpload function
   const handleDocUpload = async (data: any) => {
     if (!course) return;
-    
     const formData = new FormData();
     formData.append('title', data.title);
     if (data.document[0]) {
@@ -541,11 +453,9 @@ const CourseContent: React.FC = () => {
       const docType = detectDocumentType(data.document[0].name);
       formData.append('type', docType);
     }
-
     try {
       setUploading(true);
       setUploadProgress(0);
-      
       const axiosInstance = axios.create({
         baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000',
         headers: {
@@ -553,8 +463,6 @@ const CourseContent: React.FC = () => {
           'Content-Type': 'multipart/form-data'
         }
       });
-
-      // Use the extended type for the request config
       const response = await axiosInstance.post<DocumentUploadResponse>(
         `/api/courses/${course._id}/documents`,
         formData,
@@ -565,9 +473,8 @@ const CourseContent: React.FC = () => {
               setUploadProgress(percentCompleted);
             }
           }
-        }
+        } as { onUploadProgress: (progressEvent: { loaded: number; total?: number }) => void }
       );
-
       if (response.data.success) {
         const updatedCourse = await getCourseByTitle(title!);
         setCourse(updatedCourse);
@@ -585,25 +492,19 @@ const CourseContent: React.FC = () => {
     }
   };
 
-  // Helper function to detect document type from filename
   const detectDocumentType = (filename: string): string => {
     if (!filename) return 'other';
-    
     const extension = filename.split('.').pop()?.toLowerCase() || '';
-    
     if (extension === 'pdf') return 'pdf';
     if (['doc', 'docx'].includes(extension)) return 'doc';
     if (['ppt', 'pptx'].includes(extension)) return 'ppt';
     if (['xls', 'xlsx'].includes(extension)) return 'xls';
-    
     return 'other';
   };
 
   const handleDeleteDocument = async (documentIndex: number) => {
     if (!course) return;
-    
     if (!confirm('Êtes-vous sûr de vouloir supprimer ce document ?')) return;
-    
     try {
       setLoading(true);
       await removeCourseDocument(course._id!, documentIndex);
@@ -617,15 +518,6 @@ const CourseContent: React.FC = () => {
     }
   };
 
-  // Clean up document preview URL when component unmounts or preview changes
-  useEffect(() => {
-    if (documentPreview) {
-      return () => {
-        URL.revokeObjectURL(documentPreview);
-      };
-    }
-  }, [documentPreview]);
-
   interface VideoUploadResponse {
     success: boolean;
     message: string;
@@ -634,46 +526,34 @@ const CourseContent: React.FC = () => {
 
   const handleVideoUpload = async (data: any) => {
     if (!course) return;
-    
     const formData = new FormData();
     formData.append('title', data.title);
     if (data.description) formData.append('description', data.description);
-    
     const videoFile = data.video[0];
     if (!videoFile) {
       toast.error('Veuillez sélectionner une vidéo');
       return;
     }
-    
-    // Validate file size (500MB max)
-    const maxSize = 500 * 1024 * 1024; // 500MB in bytes
+    const maxSize = 500 * 1024 * 1024;
     if (videoFile.size > maxSize) {
       toast.error('La vidéo est trop volumineuse. Taille maximum: 500MB');
       return;
     }
-    
-    // Validate file type
     const allowedTypes = ['video/mp4', 'video/webm', 'video/ogg', 'video/quicktime'];
     if (!allowedTypes.includes(videoFile.type)) {
       toast.error('Format de vidéo non valide. Formats acceptés: MP4, WebM, OGG');
       return;
     }
-    
     formData.append('video', videoFile);
-    
     try {
       setUploading(true);
       setUploadProgress(0);
-      
-      // Create axios instance for the request
       const axiosInstance = axios.create({
         baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:5000',
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
       });
-      
-      // Upload with progress tracking
       const response = await axiosInstance.post<VideoUploadResponse>(
         `/api/courses/${course._id}/videos`, 
         formData, 
@@ -681,35 +561,27 @@ const CourseContent: React.FC = () => {
           headers: {
             'Content-Type': 'multipart/form-data'
           },
-          // @ts-ignore - onUploadProgress is available but not typed correctly in axios
-          onUploadProgress: (progressEvent: any) => {
+          onUploadProgress: (progressEvent: { loaded: number; total?: number }) => {
             if (progressEvent.total) {
               const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
               setUploadProgress(percentCompleted);
             }
           }
-        }
+        } as { headers: { 'Content-Type': string }; onUploadProgress: (progressEvent: { loaded: number; total?: number }) => void }
       );
-      
       if (!response.data.success || !response.data.course) {
         throw new Error(response.data.message || 'Invalid response from server');
       }
-      
-      // Update the course with the new data
       const updatedCourse = await getCourseByTitle(title!);
       setCourse(updatedCourse);
-      
       toast.success('Vidéo téléchargée avec succès!');
       setShowVideoUpload(false);
       resetVideo();
-      
-      // Clear the preview
       if (videoPreview) {
         URL.revokeObjectURL(videoPreview);
         setVideoPreview(null);
       }
       setVideoName(null);
-      
     } catch (error: any) {
       console.error('Error uploading video:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Échec du téléchargement de la vidéo';
@@ -720,13 +592,10 @@ const CourseContent: React.FC = () => {
     }
   };
 
-  // Handle video file change
   const handleVideoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setVideoName(file.name);
-      
-      // Create a preview URL for the video
       const fileUrl = URL.createObjectURL(file);
       setVideoPreview(fileUrl);
     } else {
@@ -735,7 +604,6 @@ const CourseContent: React.FC = () => {
     }
   };
 
-  // Clean up video preview URL when component unmounts or preview changes
   useEffect(() => {
     if (videoPreview) {
       return () => {
@@ -746,9 +614,7 @@ const CourseContent: React.FC = () => {
 
   const handleDeleteVideo = async (videoIndex: number) => {
     if (!course) return;
-    
     if (!confirm('Êtes-vous sûr de vouloir supprimer cette vidéo ?')) return;
-    
     try {
       setLoading(true);
       await removeCourseVideo(course._id!, videoIndex);
@@ -762,15 +628,10 @@ const CourseContent: React.FC = () => {
     }
   };
 
-  // Function to handle document upload
-  const handleDocumentUpload = async (courseId: string, documentData: FormData) => {
-    try {
-      const updatedCourse = await addCourseDocument(courseId, documentData);
-      setCourse(updatedCourse); // Update the course state with the new document
-      toast.success('Document added successfully');
-    } catch (error) {
-      toast.error('Failed to add document');
-    }
+  const getProgressWidth = (index: number, activeVideoIndex: number) => {
+    if (activeVideoIndex > index) return '100%';
+    if (activeVideoIndex === index) return '50%';
+    return '0%';
   };
 
   if (loading) return <Loader />;
@@ -779,16 +640,12 @@ const CourseContent: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-blue-50 to-gray-100">
-      {/* Apply custom scrollbar styles */}
       <style>{scrollbarStyles}</style>
-      
       <PageBanner
         title={course.title}
         subtitle="Explorez le contenu du cours et améliorez votre expérience d'apprentissage"
         highlight="Contenu du cours"
       />
-
-      {/* Video Upload Modal */}
       {showVideoUpload && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-8 w-full max-w-2xl relative shadow-2xl">
@@ -802,7 +659,6 @@ const CourseContent: React.FC = () => {
             >
               <FaTimes className="h-6 w-6" />
             </button>
-            
             <div className="text-center mb-6">
               <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-100 rounded-full mb-4">
                 <FaVideo className="h-8 w-8 text-blue-600" />
@@ -810,9 +666,7 @@ const CourseContent: React.FC = () => {
               <h2 className="text-2xl font-bold text-gray-900">Ajouter une nouvelle vidéo</h2>
               <p className="text-gray-600 mt-1">Téléchargez une vidéo pour enrichir votre cours</p>
             </div>
-            
             <form onSubmit={handleVideoSubmit(handleVideoUpload)} className="space-y-6">
-              {/* Title field */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Titre de la vidéo <span className="text-red-500">*</span>
@@ -828,8 +682,6 @@ const CourseContent: React.FC = () => {
                   />
                 </div>
               </div>
-              
-              {/* Video upload section */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Fichier vidéo <span className="text-red-500">*</span>
@@ -842,11 +694,10 @@ const CourseContent: React.FC = () => {
                     className="hidden"
                     id="video-upload"
                     onChange={(e) => {
-                      videoRegister('video').onChange(e); // Keep the form registration
-                      handleVideoChange(e); // Handle the preview
+                      videoRegister('video').onChange(e);
+                      handleVideoChange(e);
                     }}
                   />
-                  
                   {videoName ? (
                     <div className="flex flex-col items-center">
                       {videoPreview && (
@@ -898,8 +749,6 @@ const CourseContent: React.FC = () => {
                   )}
                 </div>
               </div>
-              
-              {/* Upload button */}
               <div className="pt-4">
                 <button
                   type="submit"
@@ -934,13 +783,10 @@ const CourseContent: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* Document Upload Modal */}
       {showDocUpload && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-md mx-auto relative shadow-xl">
             <h2 className="text-xl font-semibold text-gray-800 mb-4">Upload Document</h2>
-            
             <form onSubmit={handleDocSubmit(handleDocUpload)} className="space-y-4">
               <div>
                 <label htmlFor="document-title" className="block text-sm font-medium text-gray-700 mb-1">
@@ -953,18 +799,15 @@ const CourseContent: React.FC = () => {
                 />
                 {errors.title && <span className="text-red-500 text-sm">Title is required</span>}
               </div>
-              
               <div>
                 <label htmlFor="document-file" className="block text-sm font-medium text-gray-700 mb-1">
                   Document File <span className="text-red-500">*</span>
                 </label>
-                
                 <div className="mt-1 flex justify-center px-6 pt-5 pb-6 border-2 border-gray-300 border-dashed rounded-md">
                   <div className="space-y-1 text-center">
                     <svg className="mx-auto h-12 w-12 text-gray-400" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
                       <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
                     </svg>
-                    
                     <div className="flex text-sm text-gray-600">
                       <label htmlFor="document-file" className="relative cursor-pointer bg-white rounded-md font-medium text-blue-600 hover:text-blue-500 focus-within:outline-none">
                         <span>Upload a file</span>
@@ -983,7 +826,6 @@ const CourseContent: React.FC = () => {
                       </label>
                       <p className="pl-1">or drag and drop</p>
                     </div>
-                    
                     {documentName && (
                       <div className="mt-2 flex items-center justify-center">
                         <FaFileAlt className="h-5 w-5 text-blue-500 mr-2" />
@@ -994,7 +836,6 @@ const CourseContent: React.FC = () => {
                   </div>
                 </div>
               </div>
-              
               <div className="flex justify-end gap-3 mt-6">
                 <button
                   type="button"
@@ -1007,7 +848,6 @@ const CourseContent: React.FC = () => {
                 >
                   Cancel
                 </button>
-                
                 <button
                   type="submit"
                   disabled={uploading}
@@ -1027,7 +867,6 @@ const CourseContent: React.FC = () => {
                 </button>
               </div>
             </form>
-            
             <button 
               onClick={() => setShowDocUpload(false)} 
               className="absolute top-3 right-3 text-gray-400 hover:text-gray-500"
@@ -1038,8 +877,6 @@ const CourseContent: React.FC = () => {
           </div>
         </div>
       )}
-
-      {/* Document Delete Confirmation Modal */}
       {showDeleteModal && (
         <div className="fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-sm mx-auto relative shadow-xl">
@@ -1076,13 +913,8 @@ const CourseContent: React.FC = () => {
           </div>
         </div>
       )}
-
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col lg:flex-row gap-8">
-        {/* Main Content */}
         <div className="flex-1">
-         
-
-          {/* Course Content Tabs */}
           <div className="bg-white rounded-xl shadow-md overflow-hidden">
             <Tab.Group selectedIndex={activeTab} onChange={setActiveTab}>
               <Tab.List className="flex space-x-1 rounded-xl bg-blue-50 p-1 mb-6 shadow-sm">
@@ -1144,7 +976,6 @@ const CourseContent: React.FC = () => {
                 </Tab>
               </Tab.List>
               <Tab.Panels className="p-6">
-                {/* Description Panel */}
                 <Tab.Panel>
                   <div className="prose max-w-none">
                     <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-6 mb-8">
@@ -1157,7 +988,6 @@ const CourseContent: React.FC = () => {
                       <div className="mb-6">
                         <p className="text-gray-700 whitespace-pre-line leading-relaxed">{course.detailedDescription || course.description}</p>
                       </div>
-                      
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
                         <div className="bg-blue-50 rounded-xl p-6">
                           <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
@@ -1207,7 +1037,6 @@ const CourseContent: React.FC = () => {
                             </li>
                           </ul>
                         </div>
-                        
                         <div className="bg-blue-50 rounded-xl p-6">
                           <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center">
                             <svg className="w-5 h-5 text-blue-500 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
@@ -1218,7 +1047,7 @@ const CourseContent: React.FC = () => {
                           <ul className="space-y-2">
                             {course.syllabus ? (
                               course.syllabus.split('\n').filter(line => line.trim()).map((line, index) => (
-                                <li key={index} className="flex items-start">
+                                <li key={`syllabus-${line}-${index}`.replace(/\s+/g, '-')} className="flex items-start">
                                   <svg className="w-5 h-5 text-blue-500 mr-2 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                                   </svg>
@@ -1234,11 +1063,119 @@ const CourseContent: React.FC = () => {
                     </div>
                   </div>
                 </Tab.Panel>
-
-                {/* Videos Panel */}
                 <Tab.Panel>
                   <div className="space-y-8">
-                    {/* Add Upload Video Button for Teachers */}
+                    {isInstructor && (
+                      <div className="flex justify-end">
+                        <button
+                          onClick={() => setShowDocUpload(true)}
+                          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
+                        >
+                          <FaUpload className="h-4 w-4" />
+                          Ajouter un document
+                        </button>
+                      </div>
+                    )}
+                    {course.documents && course.documents.length > 0 ? (
+                      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
+                        <div className="p-4 bg-blue-50 border-b border-gray-200">
+                          <h3 className="text-lg font-semibold text-gray-800 flex items-center">
+                            <FaFileAlt className="h-5 w-5 mr-2 text-blue-600" />
+                            Documents du cours ({course.documents.length})
+                          </h3>
+                        </div>
+                        <ul className="divide-y divide-gray-200">
+                          {course.documents.map((doc, index) => {
+                            let bgColor = "bg-gray-100";
+                            let textColor = "text-gray-700";
+                            let icon = <FaFileAlt className="h-5 w-5" />;
+                            if (doc.type === 'pdf') {
+                              bgColor = "bg-red-100";
+                              textColor = "text-red-700";
+                              icon = <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                              </svg>;
+                            } else if (doc.type === 'doc' || doc.type === 'docx') {
+                              bgColor = "bg-blue-100";
+                              textColor = "text-blue-700";
+                              icon = <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                              </svg>;
+                            } else if (doc.type === 'ppt' || doc.type === 'pptx') {
+                              bgColor = "bg-orange-100";
+                              textColor = "text-orange-700";
+                              icon = <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
+                              </svg>;
+                            }
+                            return (
+                              <li 
+                                key={`doc-${doc.title}-${index}`.replace(/\s+/g, '-')} 
+                                id={`doc-${index}`}
+                                className="hover:bg-gray-50 transition-colors"
+                              >
+                                <div className="p-4 flex items-center justify-between">
+                                  <div className="flex items-center space-x-4">
+                                    <div className={`w-10 h-10 rounded-lg ${bgColor} ${textColor} flex items-center justify-center flex-shrink-0`}>
+                                      {icon}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <h4 className="text-base font-medium text-gray-900 truncate">{doc.title}</h4>
+                                      {doc.description && (
+                                        <p className="text-sm text-gray-500 truncate">{doc.description}</p>
+                                      )}
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center space-x-2">
+                                    <a
+                                      href={fixResourceUrl(doc.url)}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      className="inline-flex items-center justify-center bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 transition-colors"
+                                      title="Télécharger"
+                                      onClick={(e) => {
+                                        if (!doc.url) {
+                                          e.preventDefault();
+                                          toast.error('URL du document invalide');
+                                        }
+                                      }}
+                                    >
+                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
+                                      </svg>
+                                    </a>
+                                    {isInstructor && (
+                                      <button
+                                        onClick={() => {
+                                          setDocumentToDelete(index);
+                                          setShowDeleteModal(true);
+                                        }}
+                                        className="text-red-500 hover:text-red-700 p-2 bg-white rounded-lg border border-gray-200 hover:bg-red-50 transition-colors"
+                                        title="Supprimer le document"
+                                      >
+                                        <FaTrash className="h-4 w-4" />
+                                      </button>
+                                    )}
+                                  </div>
+                                </div>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      </div>
+                    ) : (
+                      <div className="text-center py-16 bg-white rounded-xl border border-gray-200 shadow-sm">
+                        <div className="max-w-md mx-auto">
+                          <FaFileAlt className="mx-auto h-16 w-16 text-blue-200 mb-4" />
+                          <h3 className="text-xl font-semibold text-gray-800 mb-2">Aucun document disponible</h3>
+                          <p className="text-gray-600 mb-6">Ce cours ne contient pas encore de documents.</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </Tab.Panel>
+                <Tab.Panel>
+                  <div className="space-y-8">
                     {isInstructor && (
                       <div className="flex justify-end">
                         <button
@@ -1250,10 +1187,8 @@ const CourseContent: React.FC = () => {
                         </button>
                       </div>
                     )}
-                    
                     {course.videos && course.videos.length > 0 ? (
                       <div className="flex flex-col md:flex-row gap-6">
-                        {/* Left Sidebar - Video Navigation */}
                         <div className="md:w-1/3 lg:w-1/4 bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
                           <div className="p-4 bg-blue-50 border-b border-gray-200">
                             <h3 className="text-lg font-semibold text-gray-800 flex items-center">
@@ -1264,10 +1199,9 @@ const CourseContent: React.FC = () => {
                           <div className="custom-scrollbar overflow-y-auto max-h-[calc(100vh-300px)]">
                           {course.videos.map((video, index) => (
                             <div 
-                              key={index} 
+                                key={`video-${video.title}-${index}`.replace(/\s+/g, '-')} 
                                 onClick={() => {
                                   setActiveVideoIndex(index);
-                                  // Scroll to the video player and set active video
                                   document.getElementById('video-player-container')?.scrollIntoView({ behavior: 'smooth' });
                                 }}
                                 className={`p-4 border-b border-gray-100 hover:bg-blue-50 cursor-pointer transition-colors flex items-start gap-3 ${activeVideoIndex === index ? 'bg-blue-100' : ''}`}
@@ -1284,11 +1218,10 @@ const CourseContent: React.FC = () => {
                                         {video.duration}
                                       </p>
                                     )}
-                                    {/* Video progress indicator - you can implement actual progress tracking */}
                                     <div className="w-16 h-1 bg-gray-200 rounded-full overflow-hidden">
                                       <div 
                                         className="h-full bg-blue-500 rounded-full"
-                                        style={{ width: activeVideoIndex > index ? '100%' : activeVideoIndex === index ? '50%' : '0%' }}
+                                        style={{ width: getProgressWidth(index, activeVideoIndex) }}
                                       ></div>
                                     </div>
                                   </div>
@@ -1297,11 +1230,8 @@ const CourseContent: React.FC = () => {
                             ))}
                                 </div>
                               </div>
-                              
-                        {/* Main Content - Video Player */}
                         <div id="video-player-container" className="md:w-2/3 lg:w-3/4">
                           <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                            {/* Current Video Title */}
                             <div className="p-6 pb-4">
                               <div className="flex justify-between items-start">
                                 <h3 className="text-xl font-semibold text-gray-800 flex items-center">
@@ -1321,15 +1251,11 @@ const CourseContent: React.FC = () => {
                                 )}
                               </div>
                             </div>
-                            
-                            {/* Video Player */}
                               <div className="aspect-w-16 aspect-h-9 bg-black">
                               {course.videos && course.videos.length > 0 && (
-                                <VideoPlayer src={course.videos[0].url} poster={course.videos[0].thumbnail} />
+                                <VideoPlayer src={course.videos[activeVideoIndex].url} poster={course.videos[activeVideoIndex].thumbnail} />
                               )}
                               </div>
-                              
-                            {/* Video Navigation Buttons */}
                             <div className="p-4 flex justify-between">
                               <button
                                 onClick={() => setActiveVideoIndex(prev => Math.max(0, prev - 1))}
@@ -1345,7 +1271,6 @@ const CourseContent: React.FC = () => {
                                 </svg>
                                 Précédent
                               </button>
-                              
                               <button
                                 onClick={() => setActiveVideoIndex(prev => Math.min((course.videos?.length || 1) - 1, prev + 1))}
                                 disabled={activeVideoIndex === (course.videos?.length || 1) - 1}
@@ -1361,8 +1286,6 @@ const CourseContent: React.FC = () => {
                                 </svg>
                               </button>
                             </div>
-                            
-                            {/* Video Description */}
                             {course.videos[activeVideoIndex]?.description && course.videos[activeVideoIndex]?.description.trim() !== '' && (
                                 <div className="p-6 pt-4">
                                   <div className="bg-gray-50 p-4 rounded-lg">
@@ -1385,143 +1308,20 @@ const CourseContent: React.FC = () => {
                     )}
                   </div>
                 </Tab.Panel>
-
-                {/* Documents Panel */}
-                <Tab.Panel>
-                  <div className="space-y-8">
-                    {/* Add Upload Document Button for Teachers */}
-                    {isInstructor && (
-                      <div className="flex justify-end">
-                        <button
-                          onClick={() => setShowDocUpload(true)}
-                          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center gap-2"
-                        >
-                          <FaUpload className="h-4 w-4" />
-                          Ajouter un document
-                        </button>
-                      </div>
-                    )}
-                    
-                    {course.documents && course.documents.length > 0 ? (
-                      <div className="bg-white border border-gray-200 rounded-xl shadow-sm overflow-hidden">
-                        <div className="p-4 bg-blue-50 border-b border-gray-200">
-                          <h3 className="text-lg font-semibold text-gray-800 flex items-center">
-                            <FaFileAlt className="h-5 w-5 mr-2 text-blue-600" />
-                            Documents du cours ({course.documents.length})
-                          </h3>
-                        </div>
-                        
-                        <ul className="divide-y divide-gray-200">
-                          {course.documents.map((doc, index) => {
-                            // Determine document type icon and color
-                            let bgColor = "bg-gray-100";
-                            let textColor = "text-gray-700";
-                            let icon = <FaFileAlt className="h-5 w-5" />;
-                            
-                            if (doc.type === 'pdf') {
-                              bgColor = "bg-red-100";
-                              textColor = "text-red-700";
-                              icon = <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
-                              </svg>;
-                            } else if (doc.type === 'doc' || doc.type === 'docx') {
-                              bgColor = "bg-blue-100";
-                              textColor = "text-blue-700";
-                              icon = <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
-                              </svg>;
-                            } else if (doc.type === 'ppt' || doc.type === 'pptx') {
-                              bgColor = "bg-orange-100";
-                              textColor = "text-orange-700";
-                              icon = <svg className="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                                <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
-                              </svg>;
-                            }
-                            
-                            return (
-                              <li 
-                            key={index}
-                                id={`doc-${index}`}
-                                className="hover:bg-gray-50 transition-colors"
-                              >
-                                <div className="p-4 flex items-center justify-between">
-                                  <div className="flex items-center space-x-4">
-                                    <div className={`w-10 h-10 rounded-lg ${bgColor} ${textColor} flex items-center justify-center flex-shrink-0`}>
-                                      {icon}
-                                      </div>
-                                    <div className="flex-1 min-w-0">
-                                      <h4 className="text-base font-medium text-gray-900 truncate">{doc.title}</h4>
-                                      {doc.description && (
-                                        <p className="text-sm text-gray-500 truncate">{doc.description}</p>
-                                    )}
-                                  </div>
-                                    </div>
-                                  
-                              <div className="flex items-center space-x-2">
-                                <a
-                                  href={fixResourceUrl(doc.url)}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                      className="inline-flex items-center justify-center bg-blue-600 text-white p-2 rounded-lg hover:bg-blue-700 transition-colors"
-                                      title="Télécharger"
-                                  onClick={(e) => {
-                                    if (!doc.url) {
-                                      e.preventDefault();
-                                      toast.error('URL du document invalide');
-                                    }
-                                  }}
-                                >
-                                      <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" />
-                                  </svg>
-                                </a>
-                                {isInstructor && (
-                                  <button
-                                    onClick={() => {
-                                      setDocumentToDelete(index);
-                                      setShowDeleteModal(true);
-                                    }}
-                                        className="text-red-500 hover:text-red-700 p-2 bg-white rounded-lg border border-gray-200 hover:bg-red-50 transition-colors"
-                                    title="Supprimer le document"
-                                  >
-                                    <FaTrash className="h-4 w-4" />
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                              </li>
-                            );
-                          })}
-                        </ul>
-                      </div>
-                    ) : (
-                      <div className="text-center py-16 bg-white rounded-xl border border-gray-200 shadow-sm">
-                        <div className="max-w-md mx-auto">
-                          <FaFileAlt className="mx-auto h-16 w-16 text-blue-200 mb-4" />
-                          <h3 className="text-xl font-semibold text-gray-800 mb-2">Aucun document disponible</h3>
-                          <p className="text-gray-600 mb-6">Ce cours ne contient pas encore de documents.</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </Tab.Panel>
               </Tab.Panels>
             </Tab.Group>
           </div>
         </div>
-
-        {/* Sidebar */}
         <div className="w-full lg:w-1/4 bg-white rounded-xl shadow-md p-5 sticky top-24">
           <div className="mb-4">
             <h3 className="font-medium text-gray-800 mb-3">Contenu du cours</h3>
             <nav className="space-y-1 max-h-[calc(100vh-250px)] overflow-y-auto pr-2 custom-scrollbar">
               {course.videos && course.videos.map((video, index) => (
                 <button
-                  key={index}
+                  key={`video-nav-${video.title}-${index}`.replace(/\s+/g, '-')}
                   onClick={() => {
                     setActiveTab(1);
                     setActiveVideoIndex(index);
-                    // Scroll to the video after a short delay to allow tab change
                     setTimeout(() => {
                       document.getElementById(`video-${index}`)?.scrollIntoView({ behavior: 'smooth' });
                     }, 100);
@@ -1534,13 +1334,11 @@ const CourseContent: React.FC = () => {
                   <span className="truncate">{video.title}</span>
                 </button>
               ))}
-              
               {course.documents && course.documents.map((doc, index) => (
                 <button
-                  key={index}
+                  key={`doc-nav-${doc.title}-${index}`.replace(/\s+/g, '-')}
                   onClick={() => {
                     setActiveTab(2);
-                    // Scroll to the document after a short delay
                     setTimeout(() => {
                       document.getElementById(`doc-${index}`)?.scrollIntoView({ behavior: 'smooth' });
                     }, 100);
@@ -1555,7 +1353,6 @@ const CourseContent: React.FC = () => {
               ))}
             </nav>
           </div>
-          
           <ul className="space-y-3 mt-6 border-t border-gray-100 pt-4">
             <li className="flex items-center text-sm text-gray-600">
               <div className="bg-blue-100 text-blue-600 rounded-full w-6 h-6 flex items-center justify-center mr-2 flex-shrink-0">

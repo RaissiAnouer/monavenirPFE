@@ -28,6 +28,16 @@ const Courses: React.FC = () => {
   const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
   const navigate = useNavigate();
 
+  const getSortIcon = () => {
+    if (sortOption === 'price-asc') {
+      return <FaSortAmountUp className="h-3 w-3" />;
+    }
+    if (sortOption === 'price-desc') {
+      return <FaSortAmountDown className="h-3 w-3" />;
+    }
+    return <FaSort className="h-3 w-3" />;
+  };
+
   // Load logged-in user (if available) from localStorage
   useEffect(() => {
     const userStr = localStorage.getItem('user');
@@ -232,13 +242,7 @@ const Courses: React.FC = () => {
                 }`}
                 onClick={() => handleSortClick(priceDirection === 'asc' ? 'price-desc' : 'price-asc')}
               >
-                {sortOption === 'price-asc' ? (
-                  <FaSortAmountUp className="h-3 w-3" />
-                ) : sortOption === 'price-desc' ? (
-                  <FaSortAmountDown className="h-3 w-3" />
-                ) : (
-                  <FaSort className="h-3 w-3" />
-                )}
+                {getSortIcon()}
                 Prix
               </button>
             </div>

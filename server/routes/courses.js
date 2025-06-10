@@ -10,8 +10,18 @@ const fs = require('fs');
 // Ensure upload directories exist
 const ensureDirectoryExists = (directory) => {
   if (!fs.existsSync(directory)) {
-    fs.mkdirSync(directory, { recursive: true });
-    console.log(`Created directory: ${directory}`);
+    try {
+      fs.mkdirSync(directory, { recursive: true });
+      // Set more restrictive permissions: 750 (rwxr-x---)
+      // Owner: rwx (7)
+      // Group: r-x (5)
+      // Others: --- (0)
+      fs.chmodSync(directory, 0o750);
+      console.log(`Created directory: ${directory}`);
+    } catch (error) {
+      console.error(`Error creating directory ${directory}:`, error);
+      throw new Error(`Failed to create directory: ${error.message}`);
+    }
   }
 };
 
@@ -65,8 +75,15 @@ const fileFilter = (req, file, cb) => {
   cb(null, true);
 };
 
-// General upload middleware for other routes
-const upload = multer({ storage: storage, fileFilter: fileFilter });
+// General upload middleware for other routes with size limits
+const upload = multer({ 
+  storage: storage, 
+  fileFilter: fileFilter,
+  limits: {
+    fileSize: 10 * 1024 * 1024, // 10MB limit for general files
+    files: 1 // Only one file at a time
+  }
+});
 
 // Updated video upload middleware with better configuration
 const videoUpload = multer({ 
