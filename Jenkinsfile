@@ -24,7 +24,7 @@ pipeline {
     }
 
     stages {
-        stage('Checkout Stage') {
+        stage('Checkout') {
             steps {
                 echo "Checking out the source code from the Git repository..."
                 checkout scm
