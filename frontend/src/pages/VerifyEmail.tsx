@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-hot-toast';
 import { CheckCircleIcon, XCircleIcon } from '@heroicons/react/24/outline';
+import { authAPI } from '../api/auth';
 
 const VerifyEmail = () => {
   const navigate = useNavigate();
@@ -17,23 +18,13 @@ const VerifyEmail = () => {
     setError('');
     setVerificationStatus(null);
     try {
-      const res = await fetch(`${import.meta.env.VITE_API_URL || 'https://pfe-backend-hac7djg2eubjbsar.canadacentral-01.azurewebsites.net/'}/api/email/verify-email`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, code })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setVerificationStatus('success');
-        toast.success('Email verified successfully! You can now log in.');
-        setTimeout(() => navigate('/login'), 2000);
-      } else {
-        setVerificationStatus('error');
-        setError(data.message || 'Invalid or expired code.');
-      }
-    } catch (err) {
+      await authAPI.verifyEmail(email, code);
+      setVerificationStatus('success');
+      toast.success('Email verified successfully! You can now log in.');
+      setTimeout(() => navigate('/login'), 2000);
+    } catch (err: any) {
       setVerificationStatus('error');
-      setError('Server error. Please try again.');
+      setError(err.response?.data?.message || 'Server error. Please try again.');
     } finally {
       setVerifying(false);
     }

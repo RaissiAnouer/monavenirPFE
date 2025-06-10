@@ -6,50 +6,159 @@ import {
   ExclamationCircleIcon,
   Squares2X2Icon,
   ListBulletIcon,
-  CheckCircleIcon
+  CheckCircleIcon,
+  PlusIcon,
+  XMarkIcon
 } from '@heroicons/react/24/outline';
+import { useAuth } from '../../contexts/AuthContext';
+import { toast } from 'react-hot-toast';
 
 interface PDFFile {
-  id: string;
+  _id: string;
   title: string;
   description: string;
   filename: string;
-  category: string;
   date: string;
 }
 
-const pdfFiles: PDFFile[] = [
-  {
-    id: '1',
-    title: 'Document de Formation',
-    description: 'Document détaillé sur la formation et l\'orientation',
-    filename: 'guide-etudes-2024.pdf',
-    category: 'Documents',
-    date: '2024-03-22'
-  },
-  {
-    id: '2',
-    title: 'Orientation Post-Bac',
-    description: 'Informations sur le processus d\'orientation universitaire',
-    filename: 'sd_par_univ_22_23_24.pdf',
-    category: 'Orientation',
-    date: '2024-03-22'
-  }
-];
-
 const UniversityGuide: React.FC = () => {
+  const { user } = useAuth();
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<'recent' | 'title'>('recent');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [authToken, setAuthToken] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState<{[key: string]: boolean}>({});
+  const [pdfFiles, setPdfFiles] = useState<PDFFile[]>([]);
+  const [showUploadModal, setShowUploadModal] = useState(false);
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadTitle, setUploadTitle] = useState('');
+  const [uploadDescription, setUploadDescription] = useState('');
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
-    // Get the authentication token from localStorage
     const token = localStorage.getItem('token');
+    if (token) {
     setAuthToken(token);
+      fetchDocuments(token);
+    } else {
+      setError('Veuillez vous connecter pour accéder aux documents');
+    }
   }, []);
+
+  const fetchDocuments = async (token: string) => {
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/documents`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
+      
+      if (response.ok) {
+        const data = await response.json();
+        setPdfFiles(data);
+      } else if (response.status === 401) {
+        // Token expired or invalid
+        localStorage.removeItem('token');
+        setAuthToken(null);
+        setError('Session expirée. Veuillez vous reconnecter.');
+      } else {
+        throw new Error('Erreur lors du chargement des documents');
+      }
+    } catch (error) {
+      console.error('Error fetching documents:', error);
+      setError('Erreur lors du chargement des documents');
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      if (file.type !== 'application/pdf') {
+        toast.error('Seuls les fichiers PDF sont acceptés');
+        return;
+      }
+      setUploadFile(file);
+    }
+  };
+
+  const handleUpload = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!uploadFile || !uploadTitle || !uploadDescription) {
+      toast.error('Veuillez remplir tous les champs');
+      return;
+    }
+
+    if (!authToken) {
+      toast.error('Veuillez vous connecter pour télécharger des documents');
+      return;
+    }
+
+    setIsUploading(true);
+    const formData = new FormData();
+    formData.append('document', uploadFile);
+    formData.append('title', uploadTitle);
+    formData.append('description', uploadDescription);
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/documents`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        },
+        body: formData
+      });
+
+      if (response.ok) {
+        toast.success('Document téléchargé avec succès');
+        setShowUploadModal(false);
+        setUploadFile(null);
+        setUploadTitle('');
+        setUploadDescription('');
+        if (authToken) {
+          fetchDocuments(authToken);
+        }
+      } else {
+        const error = await response.json();
+        throw new Error(error.message || 'Erreur lors du téléchargement');
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Erreur lors du téléchargement');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    if (!authToken) {
+      toast.error('Veuillez vous connecter pour supprimer des documents');
+      return;
+    }
+
+    if (!window.confirm('Êtes-vous sûr de vouloir supprimer ce document ?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/documents/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${authToken}`
+        }
+      });
+
+      if (response.ok) {
+        toast.success('Document supprimé avec succès');
+        if (authToken) {
+          fetchDocuments(authToken);
+        }
+      } else {
+        throw new Error('Erreur lors de la suppression');
+      }
+    } catch (error) {
+      toast.error('Erreur lors de la suppression du document');
+    }
+  };
 
   const filteredPdfs = pdfFiles
     .filter(pdf => 
@@ -104,7 +213,8 @@ const UniversityGuide: React.FC = () => {
   };
 
   const downloadPdfFile = async (baseUrl: string, filename: string, authToken: string) => {
-    const response = await fetch(`${baseUrl}/api/pdf/${encodeURIComponent(filename)}`, {
+    try {
+      const response = await fetch(`${baseUrl}/api/documents/${encodeURIComponent(filename)}`, {
       headers: {
         'Authorization': `Bearer ${authToken}`,
         'Accept': 'application/pdf'
@@ -112,6 +222,9 @@ const UniversityGuide: React.FC = () => {
     });
     
     if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error(`Le fichier "${filename}" n'a pas été trouvé sur le serveur`);
+        }
       throw await processDownloadError(response, filename);
     }
     
@@ -123,6 +236,10 @@ const UniversityGuide: React.FC = () => {
     }
     
     return blob;
+    } catch (error) {
+      console.error('Download error details:', error);
+      throw error;
+    }
   };
 
   const handlePdfDownload = async (pdf: PDFFile) => {
@@ -131,10 +248,10 @@ const UniversityGuide: React.FC = () => {
       return;
     }
     
-    setLoading(prev => ({ ...prev, [pdf.id]: true }));
+    setLoading(prev => ({ ...prev, [pdf._id]: true }));
     setError(null);
     
-    const baseUrl = import.meta.env.VITE_API_URL || 'https://pfe-backend-hac7djg2eubjbsar.canadacentral-01.azurewebsites.net';
+    const baseUrl = import.meta.env.VITE_API_BASE_URL;
     
     try {
       const blob = await downloadPdfFile(baseUrl, pdf.filename, authToken);
@@ -143,7 +260,7 @@ const UniversityGuide: React.FC = () => {
       console.error('Download error:', err);
       setError(err instanceof Error ? err.message : 'Erreur inconnue lors du téléchargement');
     } finally {
-      setLoading(prev => ({ ...prev, [pdf.id]: false }));
+      setLoading(prev => ({ ...prev, [pdf._id]: false }));
     }
   };
 
@@ -181,11 +298,12 @@ const UniversityGuide: React.FC = () => {
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Enhanced Header */}
+        {/* Header with Upload Button for Teachers */}
+        <div className="flex justify-between items-center mb-8">
         <motion.div 
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="text-center mb-12"
+            className="text-center"
         >
           <h1 className="text-4xl font-bold text-gray-900 mb-4 tracking-tight">
             Guides Universitaires
@@ -195,7 +313,105 @@ const UniversityGuide: React.FC = () => {
           </p>
         </motion.div>
 
-        {/* Improved Error/Success Message */}
+          {user?.role === 'teacher' && (
+            <button
+              onClick={() => setShowUploadModal(true)}
+              className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+            >
+              <PlusIcon className="h-5 w-5 mr-2" />
+              Ajouter un document
+            </button>
+          )}
+        </div>
+
+        {/* Upload Modal */}
+        <AnimatePresence>
+          {showUploadModal && (
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50"
+            >
+              <motion.div
+                initial={{ scale: 0.9, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0.9, opacity: 0 }}
+                className="bg-white rounded-xl p-6 w-full max-w-md"
+              >
+                <div className="flex justify-between items-center mb-4">
+                  <h3 className="text-xl font-semibold">Ajouter un document</h3>
+                  <button
+                    onClick={() => setShowUploadModal(false)}
+                    className="text-gray-500 hover:text-gray-700"
+                  >
+                    <XMarkIcon className="h-6 w-6" />
+                  </button>
+                </div>
+
+                <form onSubmit={handleUpload} className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Titre
+                    </label>
+                    <input
+                      type="text"
+                      value={uploadTitle}
+                      onChange={(e) => setUploadTitle(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Description
+                    </label>
+                    <textarea
+                      value={uploadDescription}
+                      onChange={(e) => setUploadDescription(e.target.value)}
+                      className="w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500"
+                      rows={3}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Fichier PDF
+                    </label>
+                    <input
+                      type="file"
+                      accept=".pdf"
+                      onChange={handleFileChange}
+                      className="w-full"
+                      required
+                    />
+                  </div>
+
+                  <div className="flex justify-end space-x-3">
+                    <button
+                      type="button"
+                      onClick={() => setShowUploadModal(false)}
+                      className="px-4 py-2 text-gray-700 hover:text-gray-900"
+                    >
+                      Annuler
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={isUploading}
+                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
+                    >
+                      {isUploading ? 'Téléchargement...' : 'Télécharger'}
+                    </button>
+                  </div>
+                </form>
+              </motion.div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Enhanced Error/Success Message */}
         <AnimatePresence>
           {error && (
             <motion.div
@@ -267,7 +483,7 @@ const UniversityGuide: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
               {filteredPdfs.map(pdf => (
                 <motion.div
-                  key={pdf.id}
+                  key={pdf._id}
                   variants={itemVariants}
                   className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100"
                 >
@@ -291,15 +507,15 @@ const UniversityGuide: React.FC = () => {
                     
                     <button
                       onClick={() => handlePdfDownload(pdf)}
-                      disabled={loading[pdf.id]}
+                      disabled={loading[pdf._id]}
                       className={`w-full flex items-center justify-center px-6 py-3 rounded-xl text-sm font-medium transition-all duration-200 ease-in-out ${
-                        loading[pdf.id]
+                        loading[pdf._id]
                           ? 'bg-blue-100 text-blue-400 cursor-wait'
                           : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md active:transform active:scale-95'
                       }`}
                     >
                       <DocumentTextIcon className="h-5 w-5 mr-2" />
-                      {loading[pdf.id] ? 'Téléchargement...' : 'Télécharger le guide'}
+                      {loading[pdf._id] ? 'Téléchargement...' : 'Télécharger le guide'}
                     </button>
                   </div>
                 </motion.div>
@@ -309,7 +525,7 @@ const UniversityGuide: React.FC = () => {
             <div className="space-y-6">
               {filteredPdfs.map(pdf => (
                 <motion.div
-                  key={pdf.id}
+                  key={pdf._id}
                   variants={itemVariants}
                   className="bg-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100"
                 >
@@ -333,15 +549,15 @@ const UniversityGuide: React.FC = () => {
                       </div>
                       <button
                         onClick={() => handlePdfDownload(pdf)}
-                        disabled={loading[pdf.id]}
+                        disabled={loading[pdf._id]}
                         className={`flex-shrink-0 flex items-center px-6 py-3 rounded-xl text-sm font-medium transition-all duration-200 ease-in-out ${
-                          loading[pdf.id]
+                          loading[pdf._id]
                             ? 'bg-blue-100 text-blue-400 cursor-wait'
                             : 'bg-blue-600 text-white hover:bg-blue-700 hover:shadow-md active:transform active:scale-95'
                         }`}
                       >
                         <DocumentTextIcon className="h-5 w-5 mr-2" />
-                        {loading[pdf.id] ? 'Téléchargement...' : 'Télécharger'}
+                        {loading[pdf._id] ? 'Téléchargement...' : 'Télécharger'}
                       </button>
                     </div>
                   </div>

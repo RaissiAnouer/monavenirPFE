@@ -7,6 +7,7 @@ const authRoutes = require('./routes/auth');
 const userRoutes = require('./routes/user');
 const courseRoutes = require('./routes/courses');
 const videoUploadRoutes = require('./routes/videoUpload');
+const documentsRoutes = require('./routes/documents');
 const mongoose = require('mongoose');
 const multer = require('multer');
 const fs = require('fs');
@@ -40,7 +41,9 @@ app.use(cors({
       'http://localhost:3000',    // Local frontend (React default)
       'http://localhost:5000',    // Local backend
       'https://pfe-frontend-gyc5frhrczdug0cy.canadacentral-01.azurewebsites.net', // Production frontend
-      'https://pfe-backend-hac7djg2eubjbsar.canadacentral-01.azurewebsites.net'   // Production backend
+      'https://pfe-backend-hac7djg2eubjbsar.canadacentral-01.azurewebsites.net',   // Production backend
+      'https://pfe-frontend.azurewebsites.net',  // Alternative production frontend URL
+      'https://pfe-backend.azurewebsites.net'    // Alternative production backend URL
     ];
     
     // Allow requests with no origin (like mobile apps or curl requests)
@@ -406,9 +409,10 @@ app.get('/', (req, res) => {
 
 // API Routes
 app.use('/api/courses', courseRoutes);
-app.use('/api/courses', videoUploadRoutes);
 app.use('/api/auth', authRoutes);
-app.use('/api/user', userRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/videos', videoUploadRoutes);
+app.use('/api/documents', documentsRoutes);
 app.use('/api/email', emailVerificationRoutes);
 
 // PDF download route with rate limiting

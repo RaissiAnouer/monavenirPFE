@@ -20,9 +20,7 @@ const onTokenRefreshed = (token: string) => {
 
 // Create axios instance
 const client = axios.create({
-  baseURL: import.meta.env.DEV 
-    ? 'http://localhost:5000'
-    : 'https://pfe-backend-hac7djg2eubjbsar.canadacentral-01.azurewebsites.net',
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'https://pfe-backend-hac7djg2eubjbsar.canadacentral-01.azurewebsites.net',
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
