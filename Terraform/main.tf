@@ -212,11 +212,11 @@ resource "azurerm_linux_virtual_machine" "devops_vm" {
   network_interface_ids = [
     azurerm_network_interface.devops_nic.id
   ]
-
+# ssh-keygen -t rsa -b 4096 -C "raissianouer@gmail.com"
   admin_ssh_key {
     username   = "adminuser"
-    public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQC7BHhdRwKp0NvSEmUEZebicYGglljF09GN/Fu7rlmHxilUhD0efAgXfB4/K+MdrCEI2dRJUgCYVGGwA/WfbTKl3YRiIEJpih1mDbFzOBwJ26EoBUVqjgxZ8GCRdFBfMo5fhBTspVFcshM1+xigjyuciUa6GLDcMauAErQeHV/BRM+6dFjGS49ktlpVw566MceqhzbNKHsEhyp9+sx0NiflEUucH1dmQiJh+6pRlC3ucSI2WKR8yXh+9MmkLCN6ETofjen+IgtG3yPEMeA4HDBHXxcqU5eMCPhIQ0UG7SKPwGhF4uKn8CONawgb4M7IxS0QbAR8BQn30E9FIUeur7bxwLPRH8S++MEgL4BbqqQ4S5Y4k86idoivT1+UG2nMIlxD4UweU+M+TDbx9AwGhsXMPKZAMjn/mI4l+BnlxSnIJeCU8bbprMBU+DFO4sf8SXxW61vkJZmU2Zv/xJevUP6Z5PspxZHt9I/fx3jx26dcg+FObltBZOjq3Bq8N34XcSCwAkuPMK7jdAxvObfhnKgGr4BHlrQzld/sHtkUCUE0ZrFlpjB/b6CUoEZPF36W8/033CkPQavLfB+D+sl7UsEBWfSWfIipwCY8lfEsfMd68/UzPaZbKxPrHW8UettBGkCz25lj+JcyXHmpusIp/2KaHY42nSXT2rrxO24S9pirxw== sabermefteh1925@gmail.com"
-  }
+    public_key = "ssh-rsa AAAAB3NzaC1yc2EAAAADAQABAAACAQDeppfosmuXfduY0Eqf5t/wQqly0LyZHrEUoxIuobJD/UmJNYTJ3aJcFPyGZxPn7LOrxwtfqqyrrbPLMeUXel2BEPnVz9QNJvS+6QiS4LelP+7z4Kfohupmkx+39f2xVOa5uDliAQ5v0xTHf1s4Ym5Hs1YnNU32aGbdq9qK4YdTO/Id1FaIQZFGTBweeqqjTX2HpJKBmLZOt7BwS7m94dE7Q3qxTqAecKfxCw6Dw5mRk8dvzNXhc1XQAYVni68FJ4+BABS3spgaSHa7Nh3HfMKczxdQDtEYmx9kWRHAhPg7L/xj1po/K1X0V6da1mdzfEd6zl09QwSnUTVPp866K510xsK8JXs92o+cj5TrUHEFhV4pgbHV3/989ao3i2VP7K7vSI91h0k4pAzu2ygm7Uqd5F8tu5THo1YKejcnOI0J4cTucmC9pvSVZO4uXrFIZuILbgA3XuSIieIhQhhw96c8AuMHdaqqKe254rTSpsyPFGbnJbh2s2xij4rcbvdVb0GM9JcklHKEUOtorT5B37Mv1r3R5gMpaekv5GtdGkuLbdt5E6nvqKKxsdoVQDe1xx7rN2UzykvOUPNJN3czb0LF9dPtC7s8u4j1h2ckSk8oAi0MbAgMqSvfJfVFiP3bgMqf1oSrB9scDs+qxEYeogRvOSL+LHnx7bHvsKB83yIbHQ== raissianouer@gmail.com"
+}
 
   os_disk {
     caching              = "ReadWrite"
